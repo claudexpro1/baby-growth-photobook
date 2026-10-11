@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../domain/baby.dart';
 import '../domain/naming.dart';
 import 'cloud_storage.dart';
@@ -18,6 +20,14 @@ class SyncResult {
   final int failed;
 }
 
+bool _same(Uint8List a, Uint8List b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
 /// Moves photos between the phone cache and the user's cloud folder.
 class PhotoSync {
   PhotoSync(this.cloud);
@@ -36,14 +46,13 @@ class PhotoSync {
     var ok = 0, failed = 0;
     for (final p in (await library.list()).where((p) => !p.synced)) {
       try {
-        // A retake during the upload rewrites the same file; only mark it as
-        // synced if it is exactly what we read, otherwise it stays queued.
-        final before = await p.file.stat();
-        final bytes = await p.file.readAsBytes();
+        // A retake during the upload replaces the file; only mark it as synced
+        // if it is exactly what we uploaded, otherwise it stays queued.
+        final bytes = await p.bytes();
         // Cloud implementations replace a file with the same name (retakes).
         await cloud.upload(folderId, p.name.fileName, bytes);
-        final after = await p.file.stat();
-        if (before.modified == after.modified && before.size == after.size) {
+        final after = await p.bytes();
+        if (_same(bytes, after)) {
           await library.markSynced(p.name);
           ok++;
         } else {

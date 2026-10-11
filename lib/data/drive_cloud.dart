@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -24,6 +25,7 @@ class DriveCloud implements CloudStorage {
     'GOOGLE_SERVER_CLIENT_ID',
   );
   static const _iosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+  static const _webClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 
   bool _initialized = false;
 
@@ -34,7 +36,9 @@ class DriveCloud implements CloudStorage {
     if (_initialized) return;
     await GoogleSignIn.instance.initialize(
       serverClientId: _serverClientId.isEmpty ? null : _serverClientId,
-      clientId: _iosClientId.isEmpty ? null : _iosClientId,
+      clientId: kIsWeb
+          ? (_webClientId.isEmpty ? null : _webClientId)
+          : (_iosClientId.isEmpty ? null : _iosClientId),
     );
     _initialized = true;
   }

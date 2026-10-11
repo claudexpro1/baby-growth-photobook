@@ -12,7 +12,7 @@ import '../domain/baby.dart';
 Future<Uint8List> buildPhotobookPdf(Baby baby, List<PhotoEntry> photos) async {
   final shrunk = <Uint8List>[];
   for (final p in photos) {
-    shrunk.add(await compute(_shrinkBytes, await p.file.readAsBytes()));
+    shrunk.add(await compute(_shrinkBytes, await p.bytes()));
   }
   // Noto Sans covers Latin, Greek and Cyrillic names (the default PDF font does not).
   final regular = pw.Font.ttf(

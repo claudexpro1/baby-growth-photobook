@@ -1,36 +1,34 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../domain/baby.dart';
 import '../notifications/reminder_service.dart';
 import 'baby_repository.dart';
 import 'cloud_storage.dart';
 import 'drive_cloud.dart';
+import 'local_store.dart';
+import 'local_store_factory.dart';
 import 'photo_library.dart';
 import 'photo_sync.dart';
 
 /// Overridable in tests.
 final cloudProvider = Provider<CloudStorage>((_) => DriveCloud.instance);
 
-final appDirProvider = FutureProvider<Directory>(
-  (_) => getApplicationSupportDirectory(),
-);
+final localStoreProvider = FutureProvider<LocalStore>((_) => openLocalStore());
 
 final babyRepositoryProvider = FutureProvider<BabyRepository>((ref) async {
-  return BabyRepository(await ref.watch(appDirProvider.future));
+  return BabyRepository(await ref.watch(localStoreProvider.future));
 });
 
 final photoLibraryProvider = FutureProvider.family<PhotoLibrary, String>((
   ref,
   babyId,
 ) async {
-  final dir = await ref.watch(appDirProvider.future);
-  return PhotoLibrary(Directory('${dir.path}/photos/$babyId'));
+  final store = await ref.watch(localStoreProvider.future);
+  return PhotoLibrary(store, 'photos/$babyId');
 });
 
 class BabiesNotifier extends AsyncNotifier<List<Baby>> {
@@ -66,7 +64,7 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
       await ref.read(cloudProvider).unshareFolder(sharedId);
     }
     final lib = await ref.read(photoLibraryProvider(baby.id).future);
-    if (await lib.dir.exists()) await lib.dir.delete(recursive: true);
+    await lib.deleteAll();
     await _save([
       for (final b in state.value ?? <Baby>[])
         if (b.id != baby.id) b,

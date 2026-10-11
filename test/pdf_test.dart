@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:baby_growth_photobook/data/local_store.dart';
 import 'package:baby_growth_photobook/data/photo_library.dart';
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/domain/naming.dart';
@@ -12,14 +13,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('photobook PDF is produced for a Greek name', () async {
-    final dir = Directory.systemTemp.createTempSync('pdf');
-    addTearDown(() => dir.deleteSync(recursive: true));
+    final store = MemoryStore();
     final photos = <PhotoEntry>[];
     for (var i = 1; i <= 7; i++) {
       final name = PhotoName(i, DateTime.utc(2026, 10, i));
-      final f = File('${dir.path}/${name.fileName}')
-        ..writeAsBytesSync(img.encodeJpg(img.Image(width: 80, height: 60)));
-      photos.add(PhotoEntry(name, f, synced: true));
+      final key = 'p/${name.fileName}';
+      store.data[key] = Uint8List.fromList(
+        img.encodeJpg(img.Image(width: 80, height: 60)),
+      );
+      photos.add(PhotoEntry(name, store, key, synced: true));
     }
     final baby = Baby(
       id: 'g',

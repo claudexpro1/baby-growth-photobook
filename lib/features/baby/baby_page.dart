@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../common/photo_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,6 +9,7 @@ import '../../data/photo_library.dart';
 import '../../data/providers.dart';
 import '../../domain/age_label.dart';
 import '../../domain/baby.dart';
+import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
 import 'capture.dart';
 import 'edit_baby_page.dart';
@@ -100,6 +103,8 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                         sharePhotobookPdf(context, ref, baby, photos);
                       case 'link':
                         showShareLinkSheet(context, ref, baby, photos);
+                      case 'calendar':
+                        ReminderService.instance.addToCalendar(baby);
                       case 'restore':
                         _sync(restore: true);
                       case 'edit':
@@ -125,6 +130,11 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                         child: Text('Restore photos from Drive'),
                       ),
                     ],
+                    if (kIsWeb && baby.reminder.enabled)
+                      const PopupMenuItem(
+                        value: 'calendar',
+                        child: Text('Add reminders to Calendar'),
+                      ),
                     const PopupMenuItem(value: 'edit', child: Text('Settings')),
                   ],
                 ),
@@ -254,7 +264,7 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.file(p.file, fit: BoxFit.cover, cacheWidth: 400),
+                      PhotoImage(p, cacheWidth: 400),
                       Positioned(
                         left: 0,
                         right: 0,

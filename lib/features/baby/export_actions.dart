@@ -1,9 +1,7 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../data/photo_library.dart';
@@ -52,23 +50,30 @@ Future<void> sharePhotobookPdf(
       ),
     ),
   );
-  String? path;
+  Uint8List? pdf;
   try {
-    final bytes = await buildPhotobookPdf(baby, photos);
-    final dir = await getTemporaryDirectory();
-    path = '${dir.path}/${_pdfName(baby)}';
-    await File(path).writeAsBytes(bytes);
+    pdf = await buildPhotobookPdf(baby, photos);
   } catch (_) {
-    path = null;
+    pdf = null;
   } finally {
     if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
   }
   if (!context.mounted) return;
-  if (path == null) {
+  if (pdf == null) {
     _say(context, 'Sorry, the photobook could not be made. Please try again.');
     return;
   }
-  await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [
+        XFile.fromData(
+          pdf,
+          mimeType: 'application/pdf',
+          name: _pdfName(baby),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Bottom sheet to create (or stop) a Google Drive link to a Shared folder.

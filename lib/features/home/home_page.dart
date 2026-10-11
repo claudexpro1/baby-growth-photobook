@@ -1,6 +1,6 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../common/photo_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
@@ -134,11 +134,7 @@ class _BabyCard extends ConsumerWidget {
                                   color: scheme.primary,
                                 ),
                               )
-                            : Image.file(
-                                File(photos.last.file.path),
-                                fit: BoxFit.cover,
-                                cacheWidth: 250,
-                              ),
+                            : PhotoImage(photos.last, cacheWidth: 250),
                       ),
                     ),
                     const SizedBox(width: 16),

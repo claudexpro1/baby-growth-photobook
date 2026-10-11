@@ -1,14 +1,12 @@
-import 'dart:io';
-
 import 'package:baby_growth_photobook/data/baby_repository.dart';
+import 'package:baby_growth_photobook/data/local_store.dart';
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/domain/schedule.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  late Directory dir;
-  setUp(() => dir = Directory.systemTemp.createTempSync('babies'));
-  tearDown(() => dir.deleteSync(recursive: true));
+  late MemoryStore dir;
+  setUp(() => dir = MemoryStore());
 
   Baby sample(String id, String name) => Baby(
     id: id,

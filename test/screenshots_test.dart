@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:baby_growth_photobook/data/local_store.dart';
 import 'package:baby_growth_photobook/data/providers.dart';
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/domain/naming.dart';
@@ -35,7 +36,7 @@ void main() {
     await _font('Roboto', ['$fonts/Roboto-Regular.ttf']);
     await _font('MaterialIcons', ['$fonts/MaterialIcons-Regular.otf']);
 
-    final dir = Directory.systemTemp.createTempSync('shots');
+    final store = MemoryStore();
     final out = Directory('docs/screenshots')..createSync(recursive: true);
     await tester.binding.setSurfaceSize(const Size(390, 844));
     tester.view.devicePixelRatio = 2;
@@ -65,7 +66,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDirProvider.overrideWith((_) async => dir),
+          localStoreProvider.overrideWith((_) async => store),
           babyRepositoryProvider.overrideWith((_) async => repo),
         ],
         child: RepaintBoundary(key: key, child: const PhotobookApp()),
@@ -112,20 +113,20 @@ void main() {
       phases: repo.data.first.phases,
       reminder: const ReminderSettings(enabled: false),
     );
-    final pdir = Directory('${dir.path}/photos/luna')..createSync(recursive: true);
     final colors = [0xF4A6B7, 0xF6C28B, 0xA8D5BA, 0xA7C7E7, 0xD8B4E2, 0xF9E2A0];
     for (var i = 0; i < 6; i++) {
       final im = img.Image(width: 300, height: 300);
       img.fill(im, color: img.ColorRgb8((colors[i] >> 16) & 255, (colors[i] >> 8) & 255, colors[i] & 255));
       final d = DateTime.utc(birth.year, birth.month, birth.day).add(Duration(days: i * 7));
-      File('${pdir.path}/${photoFileName(i + 1, d)}').writeAsBytesSync(img.encodeJpg(im));
+      store.data['photos/luna/${photoFileName(i + 1, d)}'] =
+          Uint8List.fromList(img.encodeJpg(im));
     }
     final repo2 = MemoryRepository()..data = [luna];
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDirProvider.overrideWith((_) async => dir),
+          localStoreProvider.overrideWith((_) async => store),
           babyRepositoryProvider.overrideWith((_) async => repo2),
         ],
         child: RepaintBoundary(key: key = GlobalKey(), child: const PhotobookApp()),

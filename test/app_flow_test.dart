@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:baby_growth_photobook/data/baby_repository.dart';
+import 'package:baby_growth_photobook/data/local_store.dart';
 import 'package:baby_growth_photobook/data/providers.dart';
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/main.dart';
@@ -11,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// Keeps profiles in memory so this UI test does not depend on real file IO
 /// (file storage has its own tests).
 class MemoryRepository extends BabyRepository {
-  MemoryRepository() : super(Directory.systemTemp);
+  MemoryRepository() : super(MemoryStore());
   List<Baby> data = [];
   @override
   Future<List<Baby>> load() async => data;
@@ -23,14 +22,13 @@ void main() {
   testWidgets('first run: add a baby (photos in app only) and see it on home', (
     tester,
   ) async {
-    final dir = Directory.systemTemp.createTempSync('app');
-    addTearDown(() => dir.deleteSync(recursive: true));
+    final store = MemoryStore();
     await tester.binding.setSurfaceSize(const Size(400, 900));
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDirProvider.overrideWith((_) async => dir),
+          localStoreProvider.overrideWith((_) async => store),
           babyRepositoryProvider.overrideWith((_) async => MemoryRepository()),
         ],
         child: const PhotobookApp(),

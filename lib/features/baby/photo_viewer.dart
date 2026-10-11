@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/photo_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -50,9 +51,20 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer> {
           IconButton(
             tooltip: 'Share',
             icon: const Icon(Icons.share),
-            onPressed: () => SharePlus.instance.share(
-              ShareParams(files: [XFile(p.file.path)]),
-            ),
+            onPressed: () async {
+              final bytes = await p.bytes();
+              await SharePlus.instance.share(
+                ShareParams(
+                  files: [
+                    XFile.fromData(
+                      bytes,
+                      mimeType: 'image/jpeg',
+                      name: p.name.fileName,
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           IconButton(
             tooltip: 'Delete',
@@ -98,7 +110,7 @@ class _PhotoViewerState extends ConsumerState<PhotoViewer> {
         itemCount: photos.length,
         onPageChanged: (v) => setState(() => _index = v),
         itemBuilder: (_, k) => InteractiveViewer(
-          child: Center(child: Image.file(photos[k].file, fit: BoxFit.contain)),
+          child: Center(child: PhotoImage(photos[k], fit: BoxFit.contain)),
         ),
       ),
       bottomNavigationBar: SafeArea(

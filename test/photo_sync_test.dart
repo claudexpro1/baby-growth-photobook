@@ -1,7 +1,8 @@
-import 'dart:io';
+import 'dart:io' show SocketException;
 import 'dart:typed_data';
 
 import 'package:baby_growth_photobook/data/cloud_storage.dart';
+import 'package:baby_growth_photobook/data/local_store.dart';
 import 'package:baby_growth_photobook/data/photo_library.dart';
 import 'package:baby_growth_photobook/data/photo_sync.dart';
 import 'package:baby_growth_photobook/domain/baby.dart';
@@ -69,7 +70,7 @@ class FakeCloud implements CloudStorage {
 }
 
 void main() {
-  late Directory dir;
+  late MemoryStore store;
   late PhotoLibrary lib;
   final baby = Baby(
     id: 'b',
@@ -82,10 +83,9 @@ void main() {
   Uint8List bytes(int v) => Uint8List.fromList([v, v, v]);
 
   setUp(() {
-    dir = Directory.systemTemp.createTempSync('photos');
-    lib = PhotoLibrary(Directory('${dir.path}/b'));
+    store = MemoryStore();
+    lib = PhotoLibrary(store, 'photos/b');
   });
-  tearDown(() => dir.deleteSync(recursive: true));
 
   test('numbers photos in order and keeps one photo per day', () async {
     await lib.add(bytes(1), DateTime(2026, 10, 10, 8));
@@ -99,7 +99,7 @@ void main() {
       '00001_2026-10-10.jpg',
       '00002_2026-10-17.jpg',
     ]);
-    expect(await all.first.file.readAsBytes(), bytes(3));
+    expect(await all.first.bytes(), bytes(3));
   });
 
   test('upload sends unsynced photos once', () async {
@@ -167,8 +167,12 @@ void main() {
     await lib.add(bytes(1), DateTime(2026, 10, 10));
     cloud.onUpload = () {
       // the parent retakes the photo while the old one is uploading
-      final f = File('${lib.dir.path}/00001_2026-10-10.jpg');
-      f.writeAsBytesSync([9, 9, 9, 9]);
+      store.data['photos/b/00001_2026-10-10.jpg'] = Uint8List.fromList([
+        9,
+        9,
+        9,
+        9,
+      ]);
     };
     final r = await PhotoSync(cloud).upload(baby, lib);
     expect(r.uploaded, 0);

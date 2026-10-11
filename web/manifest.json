@@ -1,0 +1,35 @@
+{
+    "name": "Baby Photobook",
+    "short_name": "Photobook",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FFF8F3",
+    "theme_color": "#FFF8F3",
+    "description": "One meaningful baby photo at a time, kept in your own Google Drive.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../domain/baby.dart';
@@ -255,8 +256,10 @@ class ReminderEditor extends StatelessWidget {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Remind me to take a photo'),
-          subtitle: const Text(
-            'A gentle notification on your phone. Off any time.',
+          subtitle: Text(
+            kIsWeb
+                ? 'Reminders go into your phone\'s Calendar. Use "Add reminders to Calendar" in the baby\'s menu.'
+                : 'A gentle notification on your phone. Off any time.',
           ),
           value: value.enabled,
           onChanged: (v) => onChanged(value.copyWith(enabled: v)),

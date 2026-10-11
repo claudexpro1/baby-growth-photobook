@@ -1,26 +1,29 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 
 import '../domain/baby.dart';
+import 'local_store.dart';
 
-/// Stores baby profiles as one JSON file in [dir]. The photos themselves live
-/// in the user's cloud folder; this only holds profiles and settings.
+/// Stores baby profiles as one JSON document in the [LocalStore]. The photos
+/// themselves live in the user's cloud folder; this only holds profiles and
+/// settings.
 class BabyRepository {
-  BabyRepository(Directory dir) : _file = File('${dir.path}/babies.json');
+  BabyRepository(this._store);
 
-  final File _file;
+  final LocalStore _store;
+  static const _key = 'babies.json';
 
   Future<List<Baby>> load() async {
-    if (!await _file.exists()) return [];
-    final raw = jsonDecode(await _file.readAsString()) as List;
+    final bytes = await _store.read(_key);
+    if (bytes == null) return [];
+    final raw = jsonDecode(utf8.decode(bytes)) as List;
     return raw.map((b) => Baby.fromJson(b as Map<String, dynamic>)).toList();
   }
 
-  Future<void> save(List<Baby> babies) async {
-    await _file.parent.create(recursive: true);
-    // Write to a temp file first so a crash can't leave a half-written profile.
-    final tmp = File('${_file.path}.tmp');
-    await tmp.writeAsString(jsonEncode(babies.map((b) => b.toJson()).toList()));
-    await tmp.rename(_file.path);
-  }
+  Future<void> save(List<Baby> babies) => _store.write(
+    _key,
+    Uint8List.fromList(
+      utf8.encode(jsonEncode(babies.map((b) => b.toJson()).toList())),
+    ),
+  );
 }
