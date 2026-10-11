@@ -47,6 +47,7 @@ class Baby {
     this.storage = StorageMode.appOnly,
     this.driveFolderId,
     this.driveSharedFolderId,
+    this.googleCalendarId,
   });
 
   final String id;
@@ -64,6 +65,9 @@ class Baby {
   final String? driveFolderId;
   final String? driveSharedFolderId;
 
+  /// The Google Calendar holding this baby's photo reminders, if linked.
+  final String? googleCalendarId;
+
   Baby copyWith({
     String? name,
     Gender? gender,
@@ -74,6 +78,8 @@ class Baby {
     StorageMode? storage,
     String? driveFolderId,
     String? driveSharedFolderId,
+    String? googleCalendarId,
+    bool clearGoogleCalendar = false,
   }) => Baby(
     id: id,
     name: name ?? this.name,
@@ -85,6 +91,9 @@ class Baby {
     storage: storage ?? this.storage,
     driveFolderId: driveFolderId ?? this.driveFolderId,
     driveSharedFolderId: driveSharedFolderId ?? this.driveSharedFolderId,
+    googleCalendarId: clearGoogleCalendar
+        ? null
+        : (googleCalendarId ?? this.googleCalendarId),
   );
 
   PhotoSchedule get schedule => PhotoSchedule(birth, phases);
@@ -100,6 +109,7 @@ class Baby {
     'storage': storage.name,
     'driveFolderId': driveFolderId,
     'driveSharedFolderId': driveSharedFolderId,
+    'googleCalendarId': googleCalendarId,
   };
 
   factory Baby.fromJson(Map<String, dynamic> j) => Baby(
@@ -115,6 +125,7 @@ class Baby {
     storage: StorageMode.values.byName(j['storage'] as String),
     driveFolderId: j['driveFolderId'] as String?,
     driveSharedFolderId: j['driveSharedFolderId'] as String?,
+    googleCalendarId: j['googleCalendarId'] as String?,
   );
 }
 

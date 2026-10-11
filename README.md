@@ -22,7 +22,7 @@ Documents for review: [docs/SPEC.md](docs/SPEC.md) (product + UX), [docs/COMPLIA
 
 There is one app for everyone: a web app (PWA). On an iPhone: open the app's address in **Safari**, tap **Share > Add to Home Screen**. No App Store and no Apple Developer account needed.
 
-Reminders are added to the phone's **Calendar** (menu > *Add reminders to Calendar*; browsers on iPhone cannot schedule notifications without a server); photos are cached in the browser (IndexedDB), so Google Drive matters even more; no iCloud.
+Reminders go into your **Google Calendar** (baby menu > *Add reminders to Google Calendar*): the app makes its own calendar "Baby Photobook - <name>" with a notification on each photo day, so every device that has Google Calendar notifies you (browsers cannot schedule notifications without a server). A `.ics` file download remains for other calendar apps; photos are cached in the browser (IndexedDB), so Google Drive matters even more; no iCloud.
 
 ```bash
 flutter build web --release --base-href /<path>/ --dart-define=GOOGLE_WEB_CLIENT_ID=<web-client-id>.apps.googleusercontent.com
@@ -50,7 +50,7 @@ flutter build web     # output in build/web/
 Drive sign-in only works after a Google Cloud OAuth setup. Without it the app still works, but choosing Drive shows "could not connect".
 
 1. In [Google Cloud Console](https://console.cloud.google.com), create a project and enable the **Google Drive API**.
-2. Configure the OAuth consent screen (External). Add the scope `.../auth/drive.file` only. Add your privacy policy link.
+2. Also enable the **Google Calendar API**. Configure the OAuth consent screen (External). Add only the scopes `.../auth/drive.file` and `.../auth/calendar.app.created` (the app can make its own calendar and the events in it; it cannot read your other calendars). Add your privacy policy link.
 3. Create one OAuth client of type **Web application**, with the authorized JavaScript origin of the site (for example `https://claudexpro1.github.io`).
 4. Build with the ids:
 
@@ -69,6 +69,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-11: Reminders are written straight into the user's own Google Calendar (own calendar per baby, popup on each photo day, kept up to date); scope calendar.app.created
 - 2026-10-11: Dropped the separate Android/iOS app projects: the web app is the one app for every phone and laptop (the Dart code is unchanged; native projects can be regenerated with `flutter create` if ever needed)
 - 2026-10-11: Whole profile is saved to Drive (`profile.json`) and can be restored on a new phone or browser
 - 2026-10-11: Web app (installs on iPhone from Safari): storage layer works in the browser (IndexedDB), reminders as Calendar file, app icons, Pages build workflow

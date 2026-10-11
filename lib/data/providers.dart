@@ -5,6 +5,7 @@ import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/baby.dart';
+import '../notifications/google_calendar.dart';
 import '../notifications/reminder_service.dart';
 import 'baby_repository.dart';
 import 'cloud_storage.dart';
@@ -89,6 +90,11 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
     if (sharedId != null) {
       await ref.read(cloudProvider).unshareFolder(sharedId);
     }
+    try {
+      await GoogleCalendarReminders.instance.remove(baby, prompt: true);
+    } catch (_) {
+      /* the calendar can be deleted by hand in Google Calendar */
+    }
     final lib = await ref.read(photoLibraryProvider(baby.id).future);
     await lib.deleteAll();
     await _save([
@@ -96,6 +102,27 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
         if (b.id != baby.id) b,
     ]);
     unawaited(reschedule());
+  }
+
+  /// Puts the baby's reminders into their Google Calendar. Asks Google for
+  /// permission first when [prompt] is true (call it from a tap). Returns
+  /// the calendar id.
+  Future<String> syncGoogleCalendar(Baby baby, {bool prompt = true}) async {
+    if (prompt) await GoogleCalendarReminders.instance.connect();
+    final lib = await ref.read(photoLibraryProvider(baby.id).future);
+    final dates = (await lib.list()).map((p) => p.date).toSet();
+    final current =
+        (state.value ?? []).where((b) => b.id == baby.id).firstOrNull ?? baby;
+    final id = await GoogleCalendarReminders.instance.sync(
+      current,
+      DateTime.now(),
+      dates,
+      prompt: prompt,
+    );
+    if (id != current.googleCalendarId) {
+      await updateBaby(current.copyWith(googleCalendarId: id));
+    }
+    return id;
   }
 
   Future<void> _lastReschedule = Future.value();
@@ -120,6 +147,19 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
         babies,
         (b) async => dates[b.id] ?? {},
       );
+      // Keep linked Google Calendars up to date when we are allowed to.
+      for (final b in babies.where((b) => b.googleCalendarId != null)) {
+        try {
+          await GoogleCalendarReminders.instance.sync(
+            b,
+            DateTime.now(),
+            dates[b.id] ?? {},
+            prompt: false,
+          );
+        } catch (_) {
+          /* not connected in this session: updated next time it is */
+        }
+      }
     } catch (_) {
       // Notifications unavailable (e.g. permission denied); the app still works.
     }

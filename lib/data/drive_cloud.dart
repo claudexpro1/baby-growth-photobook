@@ -1,11 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart' as http;
 
 import 'cloud_storage.dart';
+import 'google_auth.dart';
 
 /// Google Drive storage. Uses only the `drive.file` scope, so the app can see
 /// and touch just the files and folders it created itself, never the rest of
@@ -20,28 +19,10 @@ class DriveCloud implements CloudStorage {
   static const _scopes = [drive.DriveApi.driveFileScope];
   static const _folderMime = 'application/vnd.google-apps.folder';
 
-  // Optional build-time settings: --dart-define=GOOGLE_SERVER_CLIENT_ID=...
-  static const _serverClientId = String.fromEnvironment(
-    'GOOGLE_SERVER_CLIENT_ID',
-  );
-  static const _iosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
-  static const _webClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
-
-  bool _initialized = false;
-
   @override
   String get providerName => 'Google Drive';
 
-  Future<void> _init() async {
-    if (_initialized) return;
-    await GoogleSignIn.instance.initialize(
-      serverClientId: _serverClientId.isEmpty ? null : _serverClientId,
-      clientId: kIsWeb
-          ? (_webClientId.isEmpty ? null : _webClientId)
-          : (_iosClientId.isEmpty ? null : _iosClientId),
-    );
-    _initialized = true;
-  }
+  Future<void> _init() => GoogleAuth.ensureInit();
 
   @override
   Future<bool> isSignedIn() async {
@@ -66,7 +47,7 @@ class DriveCloud implements CloudStorage {
   Future<drive.DriveApi> _api() async {
     await _init();
     return drive.DriveApi(
-      _AuthClient(() async {
+      GoogleAuthClient(() async {
         final h = await GoogleSignIn.instance.authorizationClient
             .authorizationHeaders(_scopes, promptIfNecessary: true);
         if (h == null) throw StateError('Not signed in to Google Drive');
@@ -231,16 +212,4 @@ class DriveCloud implements CloudStorage {
   @override
   Uri folderUrl(String folderId) =>
       Uri.parse('https://drive.google.com/drive/folders/$folderId');
-}
-
-class _AuthClient extends http.BaseClient {
-  _AuthClient(this._headers);
-  final Future<Map<String, String>> Function() _headers;
-  final http.Client _inner = http.Client();
-
-  @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) async {
-    request.headers.addAll(await _headers());
-    return _inner.send(request);
-  }
 }

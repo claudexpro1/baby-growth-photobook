@@ -53,6 +53,42 @@ class _BabyPageState extends ConsumerState<BabyPage> {
     }
   }
 
+  Future<void> _addToGoogleCalendar(Baby baby) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Adding reminders to Google Calendar...')),
+    );
+    try {
+      await ref.read(babiesProvider.notifier).syncGoogleCalendar(baby);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Done. Look for the calendar "Baby Photobook - ${baby.name}" in Google Calendar.',
+            ),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () => launchUrl(
+                Uri.parse('https://calendar.google.com/calendar/u/0/r'),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+          ),
+        );
+    } catch (_) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not add the reminders. Allow Google Calendar access and try again.',
+            ),
+          ),
+        );
+    }
+  }
+
   Future<void> _connectDrive(Baby baby) async {
     try {
       final cloud = ref.read(cloudProvider);
@@ -106,6 +142,8 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                       case 'link':
                         showShareLinkSheet(context, ref, baby, photos);
                       case 'calendar':
+                        _addToGoogleCalendar(baby);
+                      case 'ics':
                         ReminderService.instance.addToCalendar(baby);
                       case 'restore':
                         _sync(restore: true);
@@ -135,7 +173,12 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                     if (kIsWeb && baby.reminder.enabled)
                       const PopupMenuItem(
                         value: 'calendar',
-                        child: Text('Add reminders to Calendar'),
+                        child: Text('Add reminders to Google Calendar'),
+                      ),
+                    if (kIsWeb && baby.reminder.enabled)
+                      const PopupMenuItem(
+                        value: 'ics',
+                        child: Text('Download calendar file (.ics)'),
                       ),
                     const PopupMenuItem(value: 'edit', child: Text('Settings')),
                   ],
