@@ -11,35 +11,18 @@ import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../export/photobook_pdf.dart';
 
-String _pdfName(Baby baby) =>
-    '${baby.name.replaceAll(RegExp(r'[^\w\- ]'), '')}-photobook.pdf';
+/// File name that keeps letters from any alphabet (e.g. Greek) and falls back
+/// to the baby's id if nothing is left.
+String _pdfName(Baby baby) {
+  final clean = baby.name
+      .replaceAll(RegExp(r'[^\p{L}\p{N}\- ]', unicode: true), '')
+      .trim();
+  return '${clean.isEmpty ? baby.id : clean}-photobook.pdf';
+}
 
-Future<void> _withProgress(
-  BuildContext context,
-  String text,
-  Future<void> Function() job,
-) async {
-  showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => PopScope(
-      canPop: false,
-      child: AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 20),
-            Expanded(child: Text(text)),
-          ],
-        ),
-      ),
-    ),
-  );
-  try {
-    await job();
-  } finally {
-    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
-  }
+void _say(BuildContext context, String text) {
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
 /// Builds the PDF photobook and opens the phone's share sheet.
@@ -50,18 +33,41 @@ Future<void> sharePhotobookPdf(
   List<PhotoEntry> photos,
 ) async {
   if (photos.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Take a first photo to make a photobook.')),
-    );
+    _say(context, 'Take a first photo to make a photobook.');
     return;
   }
-  late final String path;
-  await _withProgress(context, 'Making the photobook...', () async {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Expanded(child: Text('Making the photobook...')),
+          ],
+        ),
+      ),
+    ),
+  );
+  String? path;
+  try {
     final bytes = await buildPhotobookPdf(baby, photos);
     final dir = await getTemporaryDirectory();
     path = '${dir.path}/${_pdfName(baby)}';
     await File(path).writeAsBytes(bytes);
-  });
+  } catch (_) {
+    path = null;
+  } finally {
+    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+  }
+  if (!context.mounted) return;
+  if (path == null) {
+    _say(context, 'Sorry, the photobook could not be made. Please try again.');
+    return;
+  }
   await SharePlus.instance.share(ShareParams(files: [XFile(path)]));
 }
 
@@ -76,13 +82,13 @@ Future<void> showShareLinkSheet(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (_) => _ShareLinkSheet(baby: baby, photos: photos),
+    builder: (_) => _ShareLinkSheet(babyId: baby.id, photos: photos),
   );
 }
 
 class _ShareLinkSheet extends ConsumerStatefulWidget {
-  const _ShareLinkSheet({required this.baby, required this.photos});
-  final Baby baby;
+  const _ShareLinkSheet({required this.babyId, required this.photos});
+  final String babyId;
   final List<PhotoEntry> photos;
 
   @override
@@ -94,14 +100,21 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
   String? _link;
   String? _error;
 
+  Baby get _baby =>
+      ref.read(babiesProvider).value!.firstWhere((b) => b.id == widget.babyId);
+
+  void _set(VoidCallback f) {
+    if (mounted) setState(f);
+  }
+
   Future<void> _create() async {
-    setState(() {
+    _set(() {
       _busy = true;
       _error = null;
     });
     try {
       final cloud = ref.read(cloudProvider);
-      var baby = widget.baby;
+      var baby = _baby;
       final babyFolder = await cloud.ensureBabyFolder(
         baby.name,
         existingId: baby.driveFolderId,
@@ -124,31 +137,29 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
         await buildPhotobookPdf(baby, widget.photos),
       );
       final link = await cloud.shareFolderLink(shared);
-      setState(() => _link = link);
+      _set(() => _link = link);
     } catch (_) {
-      setState(
+      _set(
         () => _error =
             'Could not create the link. Check your connection and try again.',
       );
     } finally {
-      setState(() => _busy = false);
+      _set(() => _busy = false);
     }
   }
 
   Future<void> _stop() async {
-    final id = widget.baby.driveSharedFolderId;
+    final id = _baby.driveSharedFolderId;
     if (id == null) return;
-    setState(() => _busy = true);
+    _set(() => _busy = true);
     try {
       await ref.read(cloudProvider).unshareFolder(id);
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('The link no longer works.')),
-        );
+        _say(context, 'The link no longer works.');
       }
     } catch (_) {
-      setState(() {
+      _set(() {
         _error = 'Could not stop sharing. Please try again.';
         _busy = false;
       });
@@ -157,6 +168,12 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final shared = ref
+        .watch(babiesProvider)
+        .value
+        ?.where((b) => b.id == widget.babyId)
+        .firstOrNull
+        ?.driveSharedFolderId;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -174,9 +191,10 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'We put a photobook (PDF) in a separate "Shared" folder in your Drive and make '
-            'a link to that folder. Anyone you send the link to can view it. '
-            'Your other photos stay private. You can stop sharing at any time.',
+            'We put a photobook (PDF) in a separate "Shared" folder in your Drive and make a '
+            'link to it. The photobook contains ALL the photos plus your baby\'s name, birth '
+            'date and place. Anyone you send the link to can view it. Your original photo '
+            'folder stays private. You can stop sharing at any time.',
           ),
           const SizedBox(height: 16),
           if (_link != null) ...[
@@ -198,11 +216,7 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
                   label: const Text('Copy'),
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: _link!));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Link copied')),
-                      );
-                    }
+                    if (context.mounted) _say(context, 'Link copied');
                   },
                 ),
               ],
@@ -219,14 +233,19 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
                   : Text(
                       widget.photos.isEmpty
                           ? 'Take a photo first'
-                          : 'Create link',
+                          : (shared == null
+                                ? 'Create link'
+                                : 'Update and get the link'),
                     ),
             ),
-          if (widget.baby.driveSharedFolderId != null)
+          if (shared != null) ...[
+            const SizedBox(height: 8),
+            const Text('Sharing is currently ON for this baby.'),
             TextButton(
               onPressed: _busy ? null : _stop,
               child: const Text('Stop sharing'),
             ),
+          ],
           if (_error != null)
             Text(
               _error!,

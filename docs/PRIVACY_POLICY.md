@@ -1,4 +1,4 @@
-# Privacy Policy - Baby Growth Photobook
+# Privacy Policy - Baby Photobook
 
 > **DRAFT. This text has not been reviewed by a lawyer and must be reviewed before it is published or used for the app stores.** Placeholders in square brackets must be filled in.
 
@@ -9,39 +9,44 @@ Contact: [CONTACT EMAIL]
 ## The short version
 
 - We do not collect your data. We have no server, no account system, no analytics and no ads.
-- Your baby's details and photos stay on your phone and in your own Google Drive or iCloud Drive.
-- You decide where photos are stored, and you can delete everything at any time.
+- Your baby's details and photos stay on your phone and in your own Google Drive.
+- You decide where photos are stored. You can delete photos and remove a baby in the app, and delete the files in your own Drive yourself.
 
 ## What the app stores, and where
 
 | What | Where it is kept | Do we receive it? |
 |---|---|---|
-| Baby's name, gender (optional choice), birth date and time, birth place (optional) | On your phone, and in a small file (`profile.json`) next to your photos in your own Drive/iCloud | No |
-| Your photo schedule and reminder settings | On your phone, and in `profile.json` | No |
-| Photos (named like `00001_2026-10-10.jpg`) | On your phone, and in your own Google Drive folder `BabyPhotobook/<baby name>/` or iCloud Drive. If you choose "only in the app", only on your phone | No |
-| Small previews and a waiting list of uploads | On your phone | No |
+| Baby's name, colour choice (girl / boy / neutral), birth date and time, birth place (optional) | On your phone only, in the app's private storage (a file called `babies.json`). Not uploaded to Drive. | No |
+| Your photo schedule and reminder settings | On your phone only | No |
+| Photos (named like `00001_2026-10-10.jpg`) | On your phone, and in your own Google Drive folder `BabyPhotobook/<baby name>/`. If you choose "only in the app", only on your phone | No |
+| The names of the Drive folders the app created, and a list of which photos are already uploaded | On your phone | No |
+| A photobook PDF, if you make a share link | In a `Shared` folder in your own Drive (the PDF shows the baby's name, birth date, birth place if you entered one, and the photos with ages and dates) | No |
+
+The app does not encrypt this data itself; it relies on your phone's own protection. The app switches off Android's automatic cloud backup for its own data, so the photos and profiles on your phone are not copied to any backup unless you put them in your own Drive.
 
 ## Google Drive
 
-If you connect Google Drive, the app asks for one permission, "drive.file". It lets the app create and manage only the files and folders it creates. It cannot see your other Drive files. We never see your Google account data; the connection runs directly between your phone and Google. The app's use of information received from Google APIs follows the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements. We do not share Google data with anyone, do not use it for advertising and do not use it for anything other than the features you see in the app.
+If you connect Google Drive, the app asks for one permission, "drive.file". It lets the app create and manage only the files and folders it creates. It cannot see your other Drive files. The other way round, photos you add to the app's folder by hand in Drive are not visible to the app. The app uploads your photos, lists and downloads the photos it created (for "Restore photos from Drive"), and deletes a photo from Drive when you delete it in the app. We never see your Google account data; the connection runs directly between your phone and Google. The app's use of information received from Google APIs follows the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements. We do not share Google data with anyone, do not use it for advertising and do not use it for anything other than the features you see in the app.
 
-You can disconnect at any time in the app (Settings) or at myaccount.google.com/permissions.
+The app has no "Disconnect" button yet. You can remove the app's access at any time at myaccount.google.com/permissions.
 
 ## iCloud
 
-If you pick iCloud Drive, files are saved in the app's iCloud folder through Apple's service. Apple's privacy policy applies to your use of iCloud.
+iCloud Drive is not supported yet. The app shows it as "Coming soon". This section will be updated if it is added.
 
 ## Sharing
 
-Nothing is shared unless you do it. If you export a PDF or use the share sheet, it goes to the app or person you choose. If you use the optional "share link" feature, the app copies the chosen items to a `Shared` folder in your Drive and creates a link that **anyone who has the link can open**. Only send it to people you trust. You can remove the link in the app.
+Nothing is shared unless you do it. If you make a PDF photobook or share a photo with the share sheet, it goes to the app or person you choose. If you use the optional "Get a share link" feature, the app puts a PDF photobook in a `Shared` folder in your Drive and creates a link to that folder that **anyone who has the link can open**. This is your own choice and only happens when you tap "Create link". Only send the link to people you trust. You can tap "Stop sharing" in the app to remove public access; the PDF stays in your `Shared` folder until you delete it.
 
 ## Permissions
 
-- **Camera:** to take your baby's photo.
-- **Photo picker:** to choose an existing photo; the app only gets the photos you pick.
-- **Notifications:** for reminders you set. You can turn them off.
-- **Exact alarms (Android):** so reminders arrive at the time you chose.
-- **Internet:** to talk to Google Drive or iCloud.
+- **Camera:** to take your baby's photo (on iPhone the app asks to use the camera; on Android the photo is taken with your phone's camera app).
+- **Photo library / picker:** to choose an existing photo; the app only gets the photos you pick.
+- **Notifications:** for reminders you set. The app asks when you finish setting up with reminders on. You can turn reminders off in the app.
+- **Run at start-up (Android):** so scheduled reminders come back after you restart your phone.
+- **Internet:** to talk to Google Drive.
+
+Reminders are approximate: they can arrive a few minutes after the time you chose. The app does not use exact alarms.
 
 ## Children
 
@@ -53,11 +58,11 @@ None. We do not use advertising or analytics tools and do not track you.
 
 ## Your choices and rights
 
-Because we hold none of your data, there is nothing for us to delete or send you. You can: delete all app data in Settings, disconnect Drive, delete the files from your own Drive/iCloud, or uninstall the app (this deletes photos kept only in the app). If you are in the EU/UK, you have rights under data protection law; for your data in your own Google or Apple account, those companies are responsible. For questions, write to [CONTACT EMAIL].
+Because we hold none of your data, there is nothing for us to delete or send you. You can: delete a photo in the app (this also deletes it from your Drive folder), remove a baby in the app (this deletes the profile and the photos on your phone but not the photos in your Drive), delete the files from your own Drive yourself, remove the app's Google access at myaccount.google.com/permissions, or uninstall the app (this deletes photos kept only in the app). A single "delete all my data" button does not exist yet. If you are in the EU/UK, you have rights under data protection law; for your data in your own Google or Apple account, those companies are responsible. For questions, write to [CONTACT EMAIL].
 
 ## Security
 
-Sign-in tokens are kept in your phone's secure storage. Connections use HTTPS. No method is perfectly secure; please also protect your phone with a passcode.
+The app does not store Google sign-in tokens itself; Google's sign-in library on your phone manages them. Connections use HTTPS. No method is perfectly secure; please also protect your phone with a passcode.
 
 ## Changes
 

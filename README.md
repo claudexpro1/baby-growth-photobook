@@ -57,6 +57,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-11: Fixes after internal code review: safer sync (no duplicate folders, retake race), share link switched off when a baby is removed, Drive bin instead of erase, Greek/Unicode names in PDF, Android auto-backup off
 - 2026-10-11: First version: reminders, camera/gallery capture and numbering, timeline and viewer, Google Drive sync, PDF photobook and share link, review documents
 - 2026-10-11: Baby profiles (several babies), onboarding with storage choice, schedule builder and reminder settings
 - 2026-10-10: Project created with the design plan; schedule engine

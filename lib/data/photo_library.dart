@@ -53,7 +53,10 @@ class PhotoLibrary {
         out.add(PhotoEntry(n, e, synced: synced.contains(n.fileName)));
       }
     }
-    out.sort((a, b) => a.number.compareTo(b.number));
+    out.sort((a, b) {
+      final c = a.date.compareTo(b.date);
+      return c != 0 ? c : a.number.compareTo(b.number);
+    });
     return out;
   }
 
@@ -66,7 +69,10 @@ class PhotoLibrary {
     final same = existing.where((p) => p.date == day).toList();
     final number = same.isNotEmpty
         ? same.first.number
-        : (existing.isEmpty ? 1 : existing.last.number + 1);
+        : (existing.isEmpty
+              ? 1
+              : existing.map((p) => p.number).reduce((a, b) => a > b ? a : b) +
+                    1);
     final name = PhotoName(number, day);
     final file = File('${dir.path}/${name.fileName}');
     await file.writeAsBytes(bytes, flush: true);

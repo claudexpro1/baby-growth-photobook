@@ -38,12 +38,17 @@ Future<void> capturePhoto(
     // Gallery photos may be from another day: let the parent confirm the date.
     final taken = await file.lastModified();
     if (!context.mounted) return;
+    final first = DateTime(baby.birth.year, baby.birth.month, baby.birth.day);
+    final now = DateTime.now();
+    final last = now.isBefore(first) ? first : now;
+    var initial = taken.isBefore(first) ? last : taken;
+    if (initial.isAfter(last)) initial = last;
     final picked = await showDatePicker(
       context: context,
       helpText: 'Which day is this photo for?',
-      initialDate: taken.isBefore(baby.birth) ? DateTime.now() : taken,
-      firstDate: DateTime(baby.birth.year, baby.birth.month, baby.birth.day),
-      lastDate: DateTime.now(),
+      initialDate: initial,
+      firstDate: first,
+      lastDate: last,
     );
     if (picked == null) return;
     date = picked;

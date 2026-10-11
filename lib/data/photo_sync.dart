@@ -36,14 +36,19 @@ class PhotoSync {
     var ok = 0, failed = 0;
     for (final p in (await library.list()).where((p) => !p.synced)) {
       try {
+        // A retake during the upload rewrites the same file; only mark it as
+        // synced if it is exactly what we read, otherwise it stays queued.
+        final before = await p.file.stat();
+        final bytes = await p.file.readAsBytes();
         // Cloud implementations replace a file with the same name (retakes).
-        await cloud.upload(
-          folderId,
-          p.name.fileName,
-          await p.file.readAsBytes(),
-        );
-        await library.markSynced(p.name);
-        ok++;
+        await cloud.upload(folderId, p.name.fileName, bytes);
+        final after = await p.file.stat();
+        if (before.modified == after.modified && before.size == after.size) {
+          await library.markSynced(p.name);
+          ok++;
+        } else {
+          failed++;
+        }
       } catch (_) {
         failed++;
       }

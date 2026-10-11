@@ -12,6 +12,7 @@ class FakeCloud implements CloudStorage {
   final files = <String, Uint8List>{}; // name -> bytes (single folder)
   bool offline = false;
   bool failUploads = false;
+  void Function()? onUpload; // runs while an upload is in flight
   int created = 0;
 
   void _check() {
@@ -42,6 +43,7 @@ class FakeCloud implements CloudStorage {
   @override
   Future<void> upload(String folderId, String name, Uint8List bytes) async {
     _check();
+    onUpload?.call();
     if (failUploads) throw const SocketException('upload failed');
     files[name] = bytes;
   }
@@ -158,5 +160,28 @@ void main() {
     // next new photo continues the numbering
     final next = await lib.add(bytes(3), DateTime(2026, 10, 24));
     expect(next.number, 3);
+  });
+
+  test('a retake during upload is not marked as synced', () async {
+    final cloud = FakeCloud();
+    await lib.add(bytes(1), DateTime(2026, 10, 10));
+    cloud.onUpload = () {
+      // the parent retakes the photo while the old one is uploading
+      final f = File('${lib.dir.path}/00001_2026-10-10.jpg');
+      f.writeAsBytesSync([9, 9, 9, 9]);
+    };
+    final r = await PhotoSync(cloud).upload(baby, lib);
+    expect(r.uploaded, 0);
+    expect((await lib.list()).single.synced, isFalse);
+    cloud.onUpload = null;
+    await PhotoSync(cloud).upload(r.baby, lib);
+    expect(cloud.files['00001_2026-10-10.jpg'], [9, 9, 9, 9]);
+  });
+
+  test('timeline is ordered by date even for backfilled photos', () async {
+    await lib.add(bytes(1), DateTime(2026, 10, 20));
+    final late = await lib.add(bytes(2), DateTime(2026, 10, 12)); // gets #2
+    expect(late.number, 2);
+    expect((await lib.list()).map((p) => p.date.day), [12, 20]);
   });
 }

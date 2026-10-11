@@ -175,7 +175,8 @@ class DriveCloud implements CloudStorage {
       $fields: 'files(id)',
     );
     for (final f in r.files ?? <drive.File>[]) {
-      await api.files.delete(f.id!);
+      // Move to the Drive bin (recoverable for 30 days) rather than erasing.
+      await api.files.update(drive.File(trashed: true), f.id!);
     }
   }
 

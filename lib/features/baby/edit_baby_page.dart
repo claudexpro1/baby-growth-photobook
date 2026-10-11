@@ -43,6 +43,11 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
     super.dispose();
   }
 
+  Baby get _current => ref
+      .read(babiesProvider)
+      .value!
+      .firstWhere((b) => b.id == widget.babyId, orElse: () => _baby);
+
   Future<void> _save() async {
     final err = _name.text.trim().isEmpty
         ? "Please enter your baby's name."
@@ -50,14 +55,23 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
     setState(() => _error = err);
     if (err != null) return;
     if (_reminder.enabled && !_baby.reminder.enabled) {
-      await ReminderService.instance.requestPermission().catchError(
-        (_) => false,
-      );
+      final granted = await ReminderService.instance
+          .requestPermission()
+          .catchError((_) => false);
+      if (!granted && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Notifications are off for this app. Allow them in your phone settings to get reminders.',
+            ),
+          ),
+        );
+      }
     }
     await ref
         .read(babiesProvider.notifier)
         .updateBaby(
-          _baby.copyWith(
+          _current.copyWith(
             name: _name.text.trim(),
             gender: _gender,
             phases: _phases.map((p) => p.toPhase()).toList(),
@@ -68,16 +82,45 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   }
 
   Future<void> _delete() async {
+    final baby = _current;
+    final onDrive = baby.storage == StorageMode.googleDrive;
+    final photos = ref.read(photosProvider(baby.id)).value ?? [];
+    final waiting = photos.where((p) => !p.synced).length;
+    if (onDrive && waiting > 0) {
+      await showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Not all photos are in Drive yet'),
+          content: Text(
+            '$waiting photo${waiting == 1 ? ' is' : 's are'} still waiting to upload. '
+            'Open ${baby.name}\'s page and tap Sync first, so nothing is lost.',
+          ),
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+              onPressed: () => Navigator.pop(c),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text('Remove ${_baby.name}?'),
+        title: Text('Remove ${baby.name}?'),
         content: Text(
-          _baby.driveFolderId != null
-              ? 'This removes ${_baby.name} and the photos cached on this phone. '
-                    'The photos already in your Google Drive folder are not deleted.'
-              : 'This removes ${_baby.name} and all photos stored in this app. '
-                    'Photos kept only in the app cannot be recovered.',
+          [
+            if (onDrive)
+              'This removes ${baby.name} and the photos cached on this phone. '
+                  'The photos already in your Google Drive folder are not deleted.'
+            else
+              'This removes ${baby.name} and all photos stored in this app. '
+                  'Photos kept only in the app cannot be recovered.',
+            if (baby.driveSharedFolderId != null)
+              'The share link will be switched off.',
+          ].join('\n\n'),
         ),
         actions: [
           TextButton(
@@ -93,7 +136,19 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
       ),
     );
     if (ok != true || !mounted) return;
-    await ref.read(babiesProvider.notifier).remove(_baby);
+    try {
+      await ref.read(babiesProvider.notifier).remove(baby);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not switch off the share link, so nothing was removed. Check your connection and try again.',
+          ),
+        ),
+      );
+      return;
+    }
     if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -56,7 +57,14 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
 
   /// Removes the profile and the photos cached on this phone. Photos already in
   /// the user's cloud folder are left untouched.
+  ///
+  /// If a share link is active it is switched off first; if that fails nothing
+  /// is removed (throws), so a public link is never left without a way to stop it.
   Future<void> remove(Baby baby) async {
+    final sharedId = baby.driveSharedFolderId;
+    if (sharedId != null) {
+      await ref.read(cloudProvider).unshareFolder(sharedId);
+    }
     final lib = await ref.read(photoLibraryProvider(baby.id).future);
     if (await lib.dir.exists()) await lib.dir.delete(recursive: true);
     await _save([
@@ -66,8 +74,17 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
     unawaited(reschedule());
   }
 
-  /// Re-plans reminders for all babies. Safe to call at any time.
-  Future<void> reschedule() async {
+  Future<void> _lastReschedule = Future.value();
+
+  /// Re-plans reminders for all babies. Safe to call at any time; calls run
+  /// one after another so an older plan can never overwrite a newer one.
+  Future<void> reschedule() {
+    final run = _lastReschedule.then((_) => _reschedule());
+    _lastReschedule = run.then((_) {}, onError: (_) {});
+    return run;
+  }
+
+  Future<void> _reschedule() async {
     try {
       final babies = state.value ?? [];
       final dates = <String, Set<DateTime>>{};
@@ -116,6 +133,9 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
   /// Saves a photo for [date] and starts uploading it if Drive is connected.
   Future<void> addPhoto(Uint8List bytes, DateTime date) async {
     await (await _lib).add(bytes, date);
+    // A retake reuses the file name; make sure the new picture is shown.
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
     await _refresh();
     unawaited(ref.read(babiesProvider.notifier).reschedule());
     unawaited(sync());
@@ -135,7 +155,17 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
     unawaited(ref.read(babiesProvider.notifier).reschedule());
   }
 
-  Future<SyncOutcome> sync({bool restore = false}) async {
+  Future<void> _lastSync = Future.value();
+
+  /// Runs syncs for this baby one after another, so two syncs never create
+  /// duplicate folders or files.
+  Future<SyncOutcome> sync({bool restore = false}) {
+    final run = _lastSync.then((_) => _sync(restore: restore));
+    _lastSync = run.then((_) {}, onError: (_) {});
+    return run;
+  }
+
+  Future<SyncOutcome> _sync({bool restore = false}) async {
     final baby = _baby;
     if (baby == null || baby.storage != StorageMode.googleDrive) {
       return const SyncOutcome('Photos are kept in this app only.');
@@ -151,7 +181,15 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
           ? await sync.restore(baby, lib)
           : await sync.upload(baby, lib);
       if (r.baby.driveFolderId != baby.driveFolderId) {
-        await ref.read(babiesProvider.notifier).updateBaby(r.baby);
+        // Re-read the current profile so edits made during the sync are kept.
+        final current = _baby;
+        if (current != null) {
+          await ref
+              .read(babiesProvider.notifier)
+              .updateBaby(
+                current.copyWith(driveFolderId: r.baby.driveFolderId),
+              );
+        }
       }
       await _refresh();
       if (r.failed > 0) {

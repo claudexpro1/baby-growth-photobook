@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -13,7 +14,17 @@ Future<Uint8List> buildPhotobookPdf(Baby baby, List<PhotoEntry> photos) async {
   for (final p in photos) {
     shrunk.add(await compute(_shrinkBytes, await p.file.readAsBytes()));
   }
-  final doc = pw.Document(title: "${baby.name}'s photobook");
+  // Noto Sans covers Latin, Greek and Cyrillic names (the default PDF font does not).
+  final regular = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/NotoSans-Regular.ttf'),
+  );
+  final bold = pw.Font.ttf(
+    await rootBundle.load('assets/fonts/NotoSans-Bold.ttf'),
+  );
+  final doc = pw.Document(
+    title: "${baby.name}'s photobook",
+    theme: pw.ThemeData.withFont(base: regular, bold: bold),
+  );
   String d(DateTime x) => '${x.day}.${x.month}.${x.year}';
 
   doc.addPage(
