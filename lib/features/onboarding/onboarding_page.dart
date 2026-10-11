@@ -1,31 +1,19 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../domain/schedule.dart';
+import '../../notifications/reminder_service.dart';
+import '../../ui/theme.dart';
+import '../common/schedule_editor.dart';
 
-/// Four steps: about the baby, where photos live, the schedule, reminders.
+/// Four friendly steps: about the baby, where photos live, how often, reminders.
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
 
   @override
   ConsumerState<OnboardingPage> createState() => _OnboardingPageState();
-}
-
-class _EditablePhase {
-  _EditablePhase(this.startValue, this.startUnit, this.every, this.unit);
-  int startValue;
-  TimeUnit startUnit;
-  int every;
-  TimeUnit unit;
-
-  Phase toPhase() => Phase(
-    start: Age(startValue, startUnit),
-    frequency: Frequency(every, unit),
-  );
 }
 
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
@@ -36,26 +24,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   DateTime _birthDate = DateTime.now();
   TimeOfDay _birthTime = TimeOfDay.now();
   StorageMode? _storage;
+  bool _connecting = false;
+  bool _saving = false;
   var _reminder = const ReminderSettings();
-  final List<_EditablePhase> _phases = [
-    _EditablePhase(0, TimeUnit.day, 1, TimeUnit.week),
+  final List<PhaseDraft> _phases = [
+    PhaseDraft(0, TimeUnit.day, 1, TimeUnit.week),
   ];
   String? _error;
-
-  static const _presets = <String, List<List<Object>>>{
-    'Daily, then weekly, then monthly': [
-      [0, TimeUnit.day, 1, TimeUnit.day],
-      [1, TimeUnit.month, 1, TimeUnit.week],
-      [6, TimeUnit.month, 1, TimeUnit.month],
-    ],
-    'Weekly, then monthly': [
-      [0, TimeUnit.day, 1, TimeUnit.week],
-      [6, TimeUnit.month, 1, TimeUnit.month],
-    ],
-    'Monthly': [
-      [0, TimeUnit.day, 1, TimeUnit.month],
-    ],
-  };
 
   @override
   void dispose() {
@@ -72,25 +47,18 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     _birthTime.minute,
   );
 
-  List<Phase> get _phaseList => _phases.map((p) => p.toPhase()).toList();
-
   String? _validate(int step) {
     switch (step) {
       case 0:
         return _name.text.trim().isEmpty
-            ? "Please enter the baby's name."
+            ? "Please enter your baby's name."
             : null;
       case 1:
         return _storage == null
             ? 'Please choose where to keep the photos.'
             : null;
       case 2:
-        try {
-          PhotoSchedule(_birth, _phaseList);
-          return null;
-        } on ArgumentError {
-          return 'Each phase must start later than the one before it.';
-        }
+        return validatePhases(_birth, _phases);
     }
     return null;
   }
@@ -103,6 +71,22 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       setState(() => _step++);
       return;
     }
+    setState(() => _saving = true);
+    if (_reminder.enabled) {
+      // Ask for permission at the moment it is needed, with context.
+      final granted = await ReminderService.instance
+          .requestPermission()
+          .catchError((_) => false);
+      if (!granted && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Notifications are off for this app. You can allow them in your phone settings.',
+            ),
+          ),
+        );
+      }
+    }
     await ref
         .read(babiesProvider.notifier)
         .add(
@@ -112,84 +96,121 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             gender: _gender,
             birth: _birth,
             birthPlace: _place.text.trim(),
-            phases: _phaseList,
+            phases: _phases.map((p) => p.toPhase()).toList(),
             reminder: _reminder,
             storage: _storage!,
           ),
         );
-    if (mounted) Navigator.of(context).maybePop();
+    if (mounted) Navigator.of(context).pop();
   }
 
-  Future<void> _chooseStorage(StorageMode mode) async {
-    if (mode == StorageMode.appOnly) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: const Text('Keep photos only in the app?'),
-          content: const Text(
-            'Your photos will live only inside this app on this phone. '
-            'If the phone is lost, reset, or the app is deleted, the photos '
-            'are gone. Connecting Google Drive or iCloud keeps them safe in '
-            'your own account. You can connect later in Settings.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Go back'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('Keep in the app only'),
-            ),
-          ],
-        ),
+  Future<void> _chooseDrive() async {
+    setState(() {
+      _connecting = true;
+      _error = null;
+    });
+    try {
+      final cloud = ref.read(cloudProvider);
+      if (!await cloud.isSignedIn()) await cloud.signIn();
+      setState(() => _storage = StorageMode.googleDrive);
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _error = 'We could not connect to Google Drive. Please try again, or keep photos in the app for now.',
       );
-      if (ok != true) return;
+    } finally {
+      if (mounted) setState(() => _connecting = false);
     }
-    setState(() => _storage = mode);
+  }
+
+  Future<void> _chooseAppOnly() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Keep photos only in the app?'),
+        content: const Text(
+          'Your photos will live only inside this app, on this phone. '
+          'If the phone is lost or reset, or the app is deleted, the photos are gone.\n\n'
+          'Google Drive keeps them safe in your own account. You can connect it later in settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Go back'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Keep in the app only'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) setState(() => _storage = StorageMode.appOnly);
   }
 
   @override
   Widget build(BuildContext context) {
     final titles = [
-      'About the baby',
-      'Where photos live',
-      'Photo schedule',
+      'About your baby',
+      'Where should photos live?',
+      'How often?',
       'Reminders',
     ];
-    return Scaffold(
-      appBar: AppBar(title: Text('${titles[_step]} (${_step + 1}/4)')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          [_aboutStep, _storageStep, _scheduleStep, _reminderStep][_step](),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          const SizedBox(height: 24),
-          Row(
+    return Theme(
+      data: buildTheme(_gender),
+      child: Scaffold(
+        appBar: AppBar(title: Text(titles[_step])),
+        body: SafeArea(
+          child: Column(
             children: [
-              if (_step > 0)
-                TextButton(
-                  onPressed: () => setState(() {
-                    _step--;
-                    _error = null;
-                  }),
-                  child: const Text('Back'),
+              LinearProgressIndicator(value: (_step + 1) / 4),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    [
+                      _aboutStep,
+                      _storageStep,
+                      _scheduleStep,
+                      _reminderStep,
+                    ][_step](),
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(
+                          _error!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-              const Spacer(),
-              FilledButton(
-                onPressed: _next,
-                child: Text(_step < 3 ? 'Next' : 'Finish'),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: Row(
+                  children: [
+                    if (_step > 0)
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _step--;
+                          _error = null;
+                        }),
+                        child: const Text('Back'),
+                      ),
+                    const Spacer(),
+                    FilledButton(
+                      onPressed: (_saving || _connecting) ? null : _next,
+                      child: Text(_step < 3 ? 'Next' : 'Finish'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -202,20 +223,20 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         textCapitalization: TextCapitalization.words,
         decoration: const InputDecoration(labelText: 'Name'),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 20),
+      const Text('Girl or boy? (This only picks the colours.)'),
+      const SizedBox(height: 8),
       SegmentedButton<Gender>(
+        showSelectedIcon: false,
         segments: const [
           ButtonSegment(value: Gender.girl, label: Text('Girl')),
           ButtonSegment(value: Gender.boy, label: Text('Boy')),
-          ButtonSegment(
-            value: Gender.neutral,
-            label: Text('Prefer not to say'),
-          ),
+          ButtonSegment(value: Gender.neutral, label: Text('Skip')),
         ],
         selected: {_gender},
         onSelectionChanged: (s) => setState(() => _gender = s.first),
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
       ListTile(
         contentPadding: EdgeInsets.zero,
         title: const Text('Birth date'),
@@ -246,238 +267,92 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           if (t != null) setState(() => _birthTime = t);
         },
       ),
+      const SizedBox(height: 8),
       TextField(
         controller: _place,
-        decoration: const InputDecoration(labelText: 'Birth place (optional)'),
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(
+          labelText: 'Place of birth (optional)',
+        ),
       ),
     ],
   );
 
   Widget _storageStep() {
-    Widget option(StorageMode m, String title, String sub, IconData icon) =>
-        Card(
-          child: ListTile(
-            leading: Icon(icon),
-            title: Text(title),
-            subtitle: Text(sub),
-            trailing: _storage == m ? const Icon(Icons.check_circle) : null,
-            selected: _storage == m,
-            onTap: () => _chooseStorage(m),
-          ),
-        );
+    Widget option(
+      String title,
+      String sub,
+      IconData icon,
+      bool selected,
+      VoidCallback? onTap, {
+      Widget? trailing,
+    }) => Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          width: selected ? 2 : 1,
+          color: selected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: Icon(icon, size: 30),
+        title: Text(title),
+        subtitle: Text(sub),
+        trailing:
+            trailing ?? (selected ? const Icon(Icons.check_circle) : null),
+        onTap: onTap,
+      ),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Your photos go straight into your own account. '
-          'There is no server of ours in between.',
+          'There is no server of ours in between, so nobody else can see them.',
         ),
         const SizedBox(height: 12),
         option(
-          StorageMode.googleDrive,
           'Google Drive',
-          "Saved in a folder in your Drive",
+          'Recommended. Saved in "BabyPhotobook" in your Drive.',
           Icons.cloud_outlined,
+          _storage == StorageMode.googleDrive,
+          _connecting ? null : _chooseDrive,
+          trailing: _connecting
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : null,
         ),
-        if (Platform.isIOS)
-          option(
-            StorageMode.iCloud,
-            'iCloud Drive',
-            'Saved in your iCloud Drive',
-            Icons.cloud_circle_outlined,
-          ),
         option(
-          StorageMode.appOnly,
-          'Only in this app',
-          'Not recommended: photos are lost if you lose the phone',
-          Icons.phone_android,
+          'iCloud Drive',
+          'Coming soon',
+          Icons.cloud_circle_outlined,
+          false,
+          null,
         ),
-        const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text(
-            'Sign-in to Drive/iCloud arrives in an upcoming update; '
-            'your choice is saved now.',
-            style: TextStyle(fontStyle: FontStyle.italic),
-          ),
+        option(
+          'Only in this app',
+          'Not recommended: lost if the phone is lost.',
+          Icons.phone_android,
+          _storage == StorageMode.appOnly,
+          _chooseAppOnly,
         ),
       ],
     );
   }
 
-  Widget _scheduleStep() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'You decide how often to take a photo, and it can change over '
-        'time. At most one photo per day. The last phase continues onwards.',
-      ),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        children: [
-          for (final e in _presets.entries)
-            ActionChip(
-              label: Text(e.key),
-              onPressed: () => setState(() {
-                _phases
-                  ..clear()
-                  ..addAll(
-                    e.value.map(
-                      (p) => _EditablePhase(
-                        p[0] as int,
-                        p[1] as TimeUnit,
-                        p[2] as int,
-                        p[3] as TimeUnit,
-                      ),
-                    ),
-                  );
-              }),
-            ),
-        ],
-      ),
-      for (var i = 0; i < _phases.length; i++) _phaseCard(i),
-      TextButton.icon(
-        icon: const Icon(Icons.add),
-        label: const Text('Add phase'),
-        onPressed: () => setState(() {
-          final last = _phases.last;
-          _phases.add(
-            _EditablePhase(
-              last.startValue + 1,
-              last.startUnit == TimeUnit.day ? TimeUnit.month : last.startUnit,
-              last.every,
-              last.unit,
-            ),
-          );
-        }),
-      ),
-    ],
+  Widget _scheduleStep() => ScheduleEditor(
+    phases: _phases,
+    onChanged: () => setState(() => _error = null),
   );
 
-  Widget _phaseCard(int i) {
-    final p = _phases[i];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Phase ${i + 1}',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const Spacer(),
-                if (_phases.length > 1)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => setState(() => _phases.removeAt(i)),
-                  ),
-              ],
-            ),
-            if (i == 0)
-              const Text('Starts at birth')
-            else
-              _amountRow(
-                'Starts at age',
-                p.startValue,
-                p.startUnit,
-                0,
-                (v, u) => setState(() {
-                  p.startValue = v;
-                  p.startUnit = u;
-                }),
-              ),
-            _amountRow(
-              'Photo every',
-              p.every,
-              p.unit,
-              1,
-              (v, u) => setState(() {
-                p.every = v;
-                p.unit = u;
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _amountRow(
-    String label,
-    int value,
-    TimeUnit unit,
-    int min,
-    void Function(int, TimeUnit) onChanged,
-  ) {
-    return Row(
-      children: [
-        Expanded(child: Text(label)),
-        IconButton(
-          icon: const Icon(Icons.remove_circle_outline),
-          onPressed: value > min ? () => onChanged(value - 1, unit) : null,
-        ),
-        Text('$value'),
-        IconButton(
-          icon: const Icon(Icons.add_circle_outline),
-          onPressed: () => onChanged(value + 1, unit),
-        ),
-        DropdownButton<TimeUnit>(
-          value: unit,
-          items: [
-            for (final u in TimeUnit.values)
-              DropdownMenuItem(
-                value: u,
-                child: Text('${u.name}${value == 1 ? '' : 's'}'),
-              ),
-          ],
-          onChanged: (u) => onChanged(value, u!),
-        ),
-      ],
-    );
-  }
-
-  Widget _reminderStep() => Column(
-    children: [
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Remind me to take a photo'),
-        subtitle: const Text('You can change or turn this off any time.'),
-        value: _reminder.enabled,
-        onChanged: (v) =>
-            setState(() => _reminder = _reminder.copyWith(enabled: v)),
-      ),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        enabled: _reminder.enabled,
-        title: const Text('Time of day'),
-        subtitle: Text(
-          TimeOfDay(
-            hour: _reminder.hour,
-            minute: _reminder.minute,
-          ).format(context),
-        ),
-        trailing: const Icon(Icons.alarm),
-        onTap: () async {
-          final t = await showTimePicker(
-            context: context,
-            initialTime: TimeOfDay(
-              hour: _reminder.hour,
-              minute: _reminder.minute,
-            ),
-          );
-          if (t != null) {
-            setState(
-              () => _reminder = _reminder.copyWith(
-                hour: t.hour,
-                minute: t.minute,
-              ),
-            );
-          }
-        },
-      ),
-    ],
+  Widget _reminderStep() => ReminderEditor(
+    value: _reminder,
+    onChanged: (r) => setState(() => _reminder = r),
   );
 }

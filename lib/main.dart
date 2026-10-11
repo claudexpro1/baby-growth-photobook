@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'domain/baby.dart';
 import 'features/home/home_page.dart';
+import 'ui/theme.dart';
 
 void main() {
   runApp(const ProviderScope(child: PhotobookApp()));
@@ -13,11 +15,10 @@ class PhotobookApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Baby Growth Photobook',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0D9488)),
-        useMaterial3: true,
-      ),
+      title: 'Baby Photobook',
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(Gender.neutral),
+      darkTheme: buildTheme(Gender.neutral, brightness: Brightness.dark),
       home: const HomePage(),
     );
   }

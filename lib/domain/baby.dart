@@ -45,6 +45,8 @@ class Baby {
     required this.phases,
     this.reminder = const ReminderSettings(),
     this.storage = StorageMode.appOnly,
+    this.driveFolderId,
+    this.driveSharedFolderId,
   });
 
   final String id;
@@ -58,6 +60,33 @@ class Baby {
   final ReminderSettings reminder;
   final StorageMode storage;
 
+  /// Google Drive folder ids (set once the folders have been created).
+  final String? driveFolderId;
+  final String? driveSharedFolderId;
+
+  Baby copyWith({
+    String? name,
+    Gender? gender,
+    DateTime? birth,
+    String? birthPlace,
+    List<Phase>? phases,
+    ReminderSettings? reminder,
+    StorageMode? storage,
+    String? driveFolderId,
+    String? driveSharedFolderId,
+  }) => Baby(
+    id: id,
+    name: name ?? this.name,
+    gender: gender ?? this.gender,
+    birth: birth ?? this.birth,
+    birthPlace: birthPlace ?? this.birthPlace,
+    phases: phases ?? this.phases,
+    reminder: reminder ?? this.reminder,
+    storage: storage ?? this.storage,
+    driveFolderId: driveFolderId ?? this.driveFolderId,
+    driveSharedFolderId: driveSharedFolderId ?? this.driveSharedFolderId,
+  );
+
   PhotoSchedule get schedule => PhotoSchedule(birth, phases);
 
   Map<String, dynamic> toJson() => {
@@ -69,6 +98,8 @@ class Baby {
     'phases': phases.map(phaseToJson).toList(),
     'reminder': reminder.toJson(),
     'storage': storage.name,
+    'driveFolderId': driveFolderId,
+    'driveSharedFolderId': driveSharedFolderId,
   };
 
   factory Baby.fromJson(Map<String, dynamic> j) => Baby(
@@ -82,6 +113,8 @@ class Baby {
         .toList(),
     reminder: ReminderSettings.fromJson(j['reminder'] as Map<String, dynamic>),
     storage: StorageMode.values.byName(j['storage'] as String),
+    driveFolderId: j['driveFolderId'] as String?,
+    driveSharedFolderId: j['driveSharedFolderId'] as String?,
   );
 }
 
