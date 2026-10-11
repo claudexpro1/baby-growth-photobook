@@ -30,7 +30,8 @@ void main() {
   var key = GlobalKey();
   testWidgets('screenshots', (tester) async {
     stdout.writeln('start');
-    final flutter = Platform.environment['FLUTTER_ROOT'] ??
+    final flutter =
+        Platform.environment['FLUTTER_ROOT'] ??
         '${Platform.environment['HOME']}/.local/flutter';
     final fonts = '$flutter/bin/cache/artifacts/material_fonts';
     await _font('Roboto', ['$fonts/Roboto-Regular.ttf']);
@@ -47,16 +48,19 @@ void main() {
       stdout.writeln('shot $name');
       await tester.runAsync(() async {
         await Future.delayed(const Duration(milliseconds: 300));
-        final b = key.currentContext!.findRenderObject()!
-            as RenderRepaintBoundary;
+        final b =
+            key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
         final image = await b.toImage(pixelRatio: 2);
         final data = await image.toByteData(format: ui.ImageByteFormat.png);
-        File('${out.path}/$name.png').writeAsBytesSync(data!.buffer.asUint8List());
+        File('${out.path}/$name.png')
+            .writeAsBytesSync(data!.buffer.asUint8List());
       });
     }
 
     Future<void> settle() async {
-      await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 200)));
+      await tester.runAsync(
+        () => Future.delayed(const Duration(milliseconds: 200)),
+      );
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -116,10 +120,22 @@ void main() {
     final colors = [0xF4A6B7, 0xF6C28B, 0xA8D5BA, 0xA7C7E7, 0xD8B4E2, 0xF9E2A0];
     for (var i = 0; i < 6; i++) {
       final im = img.Image(width: 300, height: 300);
-      img.fill(im, color: img.ColorRgb8((colors[i] >> 16) & 255, (colors[i] >> 8) & 255, colors[i] & 255));
-      final d = DateTime.utc(birth.year, birth.month, birth.day).add(Duration(days: i * 7));
-      store.data['photos/luna/${photoFileName(i + 1, d)}'] =
-          Uint8List.fromList(img.encodeJpg(im));
+      img.fill(
+        im,
+        color: img.ColorRgb8(
+          (colors[i] >> 16) & 255,
+          (colors[i] >> 8) & 255,
+          colors[i] & 255,
+        ),
+      );
+      final d = DateTime.utc(
+        birth.year,
+        birth.month,
+        birth.day,
+      ).add(Duration(days: i * 7));
+      store.data['photos/luna/${photoFileName(i + 1, d)}'] = Uint8List.fromList(
+        img.encodeJpg(im),
+      );
     }
     final repo2 = MemoryRepository()..data = [luna];
     await tester.pumpWidget(const SizedBox());
@@ -129,13 +145,18 @@ void main() {
           localStoreProvider.overrideWith((_) async => store),
           babyRepositoryProvider.overrideWith((_) async => repo2),
         ],
-        child: RepaintBoundary(key: key = GlobalKey(), child: const PhotobookApp()),
+        child: RepaintBoundary(
+          key: key = GlobalKey(),
+          child: const PhotobookApp(),
+        ),
       ),
     );
     await settle();
     await tester.tap(find.text('Luna'));
     for (var i = 0; i < 4; i++) {
-      await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 400)));
+      await tester.runAsync(
+        () => Future.delayed(const Duration(milliseconds: 400)),
+      );
       await tester.pump(const Duration(milliseconds: 100));
     }
     await shot('07_baby');

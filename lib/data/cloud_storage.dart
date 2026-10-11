@@ -26,6 +26,10 @@ abstract class CloudStorage {
   /// Finds or creates the `Shared` subfolder of a baby folder.
   Future<String> ensureSharedFolder(String babyFolderId, {String? existingId});
 
+  /// The baby folders inside `BabyPhotobook` (empty if there is none yet).
+  /// Never creates anything.
+  Future<List<RemoteFile>> listBabyFolders();
+
   Future<void> upload(String folderId, String name, Uint8List bytes);
 
   Future<List<RemoteFile>> list(String folderId);

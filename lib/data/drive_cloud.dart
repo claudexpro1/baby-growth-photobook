@@ -127,6 +127,28 @@ class DriveCloud implements CloudStorage {
   }
 
   @override
+  Future<List<RemoteFile>> listBabyFolders() async {
+    final api = await _api();
+    final root = await _find(api, rootFolderName, 'root');
+    if (root == null) return [];
+    final out = <RemoteFile>[];
+    String? token;
+    do {
+      final r = await api.files.list(
+        q: "'$root' in parents and mimeType = '$_folderMime' and trashed = false",
+        $fields: 'nextPageToken,files(id,name)',
+        pageSize: 100,
+        pageToken: token,
+      );
+      for (final f in r.files ?? <drive.File>[]) {
+        if (f.name != 'Shared') out.add(RemoteFile(f.id!, f.name!));
+      }
+      token = r.nextPageToken;
+    } while (token != null);
+    return out;
+  }
+
+  @override
   Future<void> upload(String folderId, String name, Uint8List bytes) async {
     final api = await _api();
     await deleteByName(folderId, name); // replace, never duplicate

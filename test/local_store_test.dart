@@ -43,6 +43,9 @@ void main() {
     expect(a, contains("SUMMARY:Time for Luna's photo"));
     // 17, 24, 31 Oct and 7 Nov fall inside one month from the 11th.
     expect('BEGIN:VEVENT'.allMatches(a).length, 4);
-    expect(buildCalendarIcs(baby, now, months: 1).contains('UID:abc-20261017'), isTrue);
+    expect(
+      buildCalendarIcs(baby, now, months: 1).contains('UID:abc-20261017'),
+      isTrue,
+    );
   });
 }

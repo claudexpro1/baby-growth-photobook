@@ -12,7 +12,8 @@ String buildCalendarIcs(Baby baby, DateTime now, {int months = 36}) {
   final end = DateTime.utc(now.year, now.month + months, now.day);
   final due = baby.schedule.dueDates(today, end);
   String two(int n) => n.toString().padLeft(2, '0');
-  String ymd(DateTime d) => '${d.year.toString().padLeft(4, '0')}${two(d.month)}${two(d.day)}';
+  String ymd(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}${two(d.month)}${two(d.day)}';
   String esc(String s) => s
       .replaceAll(r'\', r'\\')
       .replaceAll(';', r'\;')
@@ -36,7 +37,9 @@ String buildCalendarIcs(Baby baby, DateTime now, {int months = 36}) {
       ..write('SUMMARY:${esc("Time for ${baby.name}'s photo")}\r\n')
       ..write('DESCRIPTION:${esc(ageLabel(baby.birth, d))}\r\n')
       ..write('BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:PT0M\r\n')
-      ..write('DESCRIPTION:${esc("Time for ${baby.name}'s photo")}\r\nEND:VALARM\r\n')
+      ..write(
+        'DESCRIPTION:${esc("Time for ${baby.name}'s photo")}\r\nEND:VALARM\r\n',
+      )
       ..write('END:VEVENT\r\n');
   }
   b.write('END:VCALENDAR\r\n');

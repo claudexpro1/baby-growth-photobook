@@ -44,6 +44,7 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
   Future<void> add(Baby baby) async {
     await _save([...?state.value, baby]);
     unawaited(reschedule());
+    _backup(baby);
   }
 
   Future<void> updateBaby(Baby baby) async {
@@ -51,6 +52,31 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
       for (final b in state.value ?? <Baby>[]) b.id == baby.id ? baby : b,
     ]);
     unawaited(reschedule());
+    _backup(baby);
+  }
+
+  /// Saves the profile (and any waiting photos) to Drive in the background.
+  void _backup(Baby baby) {
+    if (baby.storage == StorageMode.googleDrive) {
+      unawaited(ref.read(photosProvider(baby.id).notifier).sync());
+    }
+  }
+
+  /// Brings back babies saved in the user's Drive, with their photos.
+  /// Returns how many babies were restored.
+  Future<int> restoreFromDrive() async {
+    final cloud = ref.read(cloudProvider);
+    if (!await cloud.isSignedIn()) await cloud.signIn();
+    final found = await PhotoSync(cloud).findProfiles();
+    final have = {for (final b in state.value ?? <Baby>[]) b.id};
+    final fresh = found.where((b) => !have.contains(b.id)).toList();
+    if (fresh.isEmpty) return 0;
+    await _save([...?state.value, ...fresh]);
+    unawaited(reschedule());
+    for (final b in fresh) {
+      await ref.read(photosProvider(b.id).notifier).sync(restore: true);
+    }
+    return fresh.length;
   }
 
   /// Removes the profile and the photos cached on this phone. Photos already in

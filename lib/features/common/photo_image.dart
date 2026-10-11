@@ -7,7 +7,12 @@ import '../../data/photo_library.dart';
 /// Shows a stored photo. Loads the bytes once and reloads only if the picture
 /// was replaced (retake).
 class PhotoImage extends StatefulWidget {
-  const PhotoImage(this.photo, {super.key, this.fit = BoxFit.cover, this.cacheWidth});
+  const PhotoImage(
+    this.photo, {
+    super.key,
+    this.fit = BoxFit.cover,
+    this.cacheWidth,
+  });
   final PhotoEntry photo;
   final BoxFit fit;
   final int? cacheWidth;
@@ -29,7 +34,8 @@ class _PhotoImageState extends State<PhotoImage> {
   @override
   void didUpdateWidget(PhotoImage old) {
     super.didUpdateWidget(old);
-    if (old.photo.rev != widget.photo.rev || old.photo.name.fileName != widget.photo.name.fileName) {
+    if (old.photo.rev != widget.photo.rev ||
+        old.photo.name.fileName != widget.photo.name.fileName) {
       _load();
     }
   }

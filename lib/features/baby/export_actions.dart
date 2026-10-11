@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,11 +65,7 @@ Future<void> sharePhotobookPdf(
   await SharePlus.instance.share(
     ShareParams(
       files: [
-        XFile.fromData(
-          pdf,
-          mimeType: 'application/pdf',
-          name: _pdfName(baby),
-        ),
+        XFile.fromData(pdf, mimeType: 'application/pdf', name: _pdfName(baby)),
       ],
     ),
   );

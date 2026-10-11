@@ -42,10 +42,14 @@ class FakeCloud implements CloudStorage {
     String? existingId,
   }) async => 'shared-1';
   @override
+  Future<List<RemoteFile>> listBabyFolders() async =>
+      files.isEmpty ? [] : [const RemoteFile('folder-1', 'Luna')];
+  @override
   Future<void> upload(String folderId, String name, Uint8List bytes) async {
     _check();
-    onUpload?.call();
-    if (failUploads) throw const SocketException('upload failed');
+    final isPhoto = name.endsWith('.jpg');
+    if (isPhoto) onUpload?.call();
+    if (isPhoto && failUploads) throw const SocketException('upload failed');
     files[name] = bytes;
   }
 
@@ -108,7 +112,7 @@ void main() {
     final r = await PhotoSync(cloud).upload(baby, lib);
     expect(r.uploaded, 1);
     expect(r.baby.driveFolderId, 'folder-1');
-    expect(cloud.files.keys, ['00001_2026-10-10.jpg']);
+    expect(cloud.files.keys.toSet(), {'00001_2026-10-10.jpg', 'profile.json'});
     final again = await PhotoSync(cloud).upload(r.baby, lib);
     expect(again.uploaded, 0);
     expect((await lib.list()).single.synced, isTrue);
@@ -122,7 +126,7 @@ void main() {
     expect((await lib.list()).single.synced, isFalse);
     b = (await PhotoSync(cloud).upload(b, lib)).baby;
     expect(cloud.files['00001_2026-10-10.jpg'], bytes(9));
-    expect(cloud.files.length, 1);
+    expect(cloud.files.length, 2); // photo + profile.json
   });
 
   test('a failed upload keeps the photo queued, never loses it', () async {
@@ -187,5 +191,36 @@ void main() {
     final late = await lib.add(bytes(2), DateTime(2026, 10, 12)); // gets #2
     expect(late.number, 2);
     expect((await lib.list()).map((p) => p.date.day), [12, 20]);
+  });
+
+  test(
+    'profile is saved with the photos and restored on a new phone',
+    () async {
+      final cloud = FakeCloud();
+      await lib.add(bytes(1), DateTime(2026, 10, 10));
+      await PhotoSync(cloud).upload(baby, lib);
+      expect(cloud.files.containsKey('profile.json'), isTrue);
+
+      // a new phone: nothing local, same cloud
+      final found = await PhotoSync(cloud).findProfiles();
+      expect(found, hasLength(1));
+      expect(found.single.id, 'b');
+      expect(found.single.name, 'Luna');
+      expect(found.single.driveFolderId, 'folder-1');
+      expect(found.single.storage, StorageMode.googleDrive);
+      expect(found.single.phases, hasLength(1));
+
+      final fresh = PhotoLibrary(MemoryStore(), 'photos/b');
+      final r = await PhotoSync(cloud).restore(found.single, fresh);
+      expect(r.downloaded, 1);
+      expect((await fresh.list()).single.number, 1);
+    },
+  );
+
+  test('a folder without a readable profile is skipped', () async {
+    final cloud = FakeCloud();
+    cloud.files['00001_2026-10-10.jpg'] = bytes(1);
+    cloud.files['profile.json'] = Uint8List.fromList([1, 2, 3]);
+    expect(await PhotoSync(cloud).findProfiles(), isEmpty);
   });
 }

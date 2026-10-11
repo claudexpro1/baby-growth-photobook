@@ -1,6 +1,7 @@
-
 import 'package:flutter/material.dart';
+
 import '../common/photo_image.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
@@ -28,6 +29,27 @@ class _HomePageState extends ConsumerState<HomePage> {
     });
   }
 
+  bool _restoring = false;
+
+  Future<void> _restore() async {
+    setState(() => _restoring = true);
+    String message;
+    try {
+      final n = await ref.read(babiesProvider.notifier).restoreFromDrive();
+      message = n == 0
+          ? 'No new babies found in your Google Drive.'
+          : (n == 1
+                ? 'Restored 1 baby from Google Drive.'
+                : 'Restored $n babies from Google Drive.');
+    } catch (_) {
+      message = 'Could not reach Google Drive. Please check your connection and try again.';
+    }
+    if (!mounted) return;
+    setState(() => _restoring = false);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   void _add() =>
       Navigator.of(context)
           .push(MaterialPageRoute(builder: (_) => const OnboardingPage()));
@@ -36,7 +58,16 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final babies = ref.watch(babiesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Baby Photobook')),
+      appBar: AppBar(
+        title: const Text('Baby Photobook'),
+        actions: [
+          IconButton(
+            tooltip: 'Restore from Google Drive',
+            onPressed: _restoring ? null : _restore,
+            icon: const Icon(Icons.cloud_download_outlined),
+          ),
+        ],
+      ),
       floatingActionButton: babies.hasValue && babies.value!.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _add,
@@ -76,6 +107,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                       FilledButton(
                         onPressed: _add,
                         child: const Text('Start with your baby'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: _restoring ? null : _restore,
+                        icon: const Icon(Icons.cloud_download_outlined),
+                        label: const Text(
+                          'I already have photos in Google Drive',
+                        ),
                       ),
                     ],
                   ),

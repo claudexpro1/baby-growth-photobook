@@ -28,7 +28,7 @@ Non-goals for v1: social features, a web viewer, AI features, editing tools, sha
 4. As a parent, I can browse a timeline of my baby growing, with age labels like "3 weeks, 2 days".
 5. As a parent, I can add a photo for a day I missed, with the right date.
 6. As a parent, I can export a PDF photobook and share it with family.
-7. As a parent, if I get a new phone, I reconnect and my timeline comes back. (Partly built: "Restore photos from Drive" brings back missing photos for a baby profile that already exists in the app. Restoring the profile itself on a new phone is not built.)
+7. As a parent, if I get a new phone, I reconnect and my timeline comes back. (Built: the profile is saved to Drive as `profile.json`; on a new phone or browser, tap the cloud icon on the home screen and the babies and photos come back. Not tested against a real Google account yet.)
 8. As a parent, I can decline cloud storage and still use the app, understanding the risk.
 9. As a parent, I can add a second child later.
 10. As a parent, I can delete everything the app holds, whenever I want. (Partly built: I can remove one baby and the photos cached on the phone, and delete single photos. There is no "delete all my data" button.)
@@ -96,7 +96,7 @@ My Drive/
       00002_2026-10-11.jpg
       Shared/        (only if the parent shares; holds the PDF)
 ```
-- There is no `profile.json` in Drive (not built, planned for new-phone restore).
+- `profile.json` is saved in each baby's Drive folder on every sync and on every profile change; if you change the profile on two devices, the last one to sync wins.
 - With the narrow `drive.file` permission the app can only see files it created. Photos the parent adds to the folder by hand in Drive are **not visible to the app** (not restored, not shown). If the parent deletes the folder in Drive the app creates a new one on the next upload; if it is only moved or renamed the app keeps using it by id. The app does not yet explain this on screen.
 
 ## 6. Data model
@@ -108,7 +108,7 @@ My Drive/
 | ReminderSettings | enabled, hour, minute (snooze planned) |
 | Photo (built, not a stored record) | Derived from the file name `NNNNN_YYYY-MM-DD.jpg` in the baby's photo folder on the phone: number, date, file. "Uploaded" is a list of file names in a hidden `.synced.json` next to the photos. |
 
-Storage as built: all baby profiles are one JSON file, `babies.json`, in the app's private support folder on the phone (written via a temp file so a crash cannot corrupt it). Photos are in `photos/<baby id>/` in the same private folder. This relies on the phone's app sandbox; the app adds no encryption of its own. There is no database (drift/SQLite was dropped), no thumbnails cache and no upload-queue table: photos not listed in `.synced.json` are simply uploaded on the next sync. `profile.json` in Drive is **not built**.
+Storage as built: all baby profiles are one JSON file, `babies.json`, in the app's private support folder on the phone (written via a temp file so a crash cannot corrupt it). Photos are in `photos/<baby id>/` in the same private folder. This relies on the phone's app sandbox; the app adds no encryption of its own. There is no database (drift/SQLite was dropped), no thumbnails cache and no upload-queue table: photos not listed in `.synced.json` are simply uploaded on the next sync. `profile.json` is also saved in the baby's Drive folder (since 2026-10-11); the browser build keeps the same files in IndexedDB instead of a folder.
 
 ## 7. File naming and numbering
 
@@ -167,7 +167,7 @@ Built: menu > **Restore photos from Drive** (Drive babies only) looks in `BabyPh
 Not built (planned): full new-phone restore.
 1. Install app on the new phone, choose "I already use this app".
 2. Sign in to Google.
-3. App reads `BabyPhotobook/` for folders and a `profile.json`, and rebuilds babies, schedules and timeline. **There is no `profile.json` yet, so today a new phone has to create the baby again (same name) and then use Restore photos from Drive.** The schedule and reminder choices are not recovered.
+3. App reads `BabyPhotobook/` for folders and a `profile.json`, and rebuilds babies, schedules and timeline. The profile (schedule, reminder time, settings) comes back with the photos. Reminders are scheduled again from the restored profile.
 4. Parent confirms each baby found. Reminders need to be allowed again.
 - Limit: app-only photos cannot be restored. Photos not created by the app are not visible with `drive.file` (see 5.7); this is a known trade-off for privacy.
 
@@ -193,7 +193,7 @@ Not built (planned): full new-phone restore.
 | Onboarding with storage choice and Drive sign-in | Built | |
 | Camera (system camera) / gallery capture, filing, naming, replace | Built | Ghost overlay, in-app camera |
 | Home, baby page, age-grouped timeline, full-screen viewer, share, delete | Built | Milestones, birth-story card, month grid, slideshow, empty frames |
-| Google Drive upload, retry, delete, restore missing photos | Built | New-phone restore of the profile (`profile.json`) |
+| Google Drive upload, retry, delete, restore missing photos | Built | — (profile restore built; real-account test pending) |
 | iCloud Drive sync | Not built ("Coming soon" in the app; needs Mac / CI) | |
 | PDF export, share sheet, Drive Shared link | Built (PDF only, no options) | Date range / layout options, photo selection |
 | Video timelapse | No | Yes |
@@ -266,4 +266,4 @@ These were found by an independent read-through of the code and fixed before thi
 - The PDF and its file name work with Greek and other non-Latin names (Noto Sans font bundled, SIL Open Font License).
 - Safer date picker for gallery photos, clearer messages if notifications are denied, and safer handling when a sheet is closed mid-action.
 
-Still open (known limits): iPhone Google sign-in needs the reversed client id added to the iOS settings once the Google ids exist; restoring a whole profile on a new phone is not built (only photos of an existing profile); two babies with the same name would share one Drive folder; a photo deleted while offline stays in Drive until the next time you delete it again or remove it by hand.
+Still open (known limits): iPhone Google sign-in needs the reversed client id added to the iOS settings once the Google ids exist; two babies with the same name would share one Drive folder; a photo deleted while offline stays in Drive until the next time you delete it again or remove it by hand.
