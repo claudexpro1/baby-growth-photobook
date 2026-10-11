@@ -7,10 +7,10 @@ void main() {
   final birth = d(2026, 10, 10);
 
   PhotoSchedule example() => PhotoSchedule(birth, const [
-        Phase(start: Age.birth, frequency: Frequency.daily),
-        Phase(start: Age(1, TimeUnit.month), frequency: Frequency.weekly),
-        Phase(start: Age(6, TimeUnit.month), frequency: Frequency.monthly),
-      ]);
+    Phase(start: Age.birth, frequency: Frequency.daily),
+    Phase(start: Age(1, TimeUnit.month), frequency: Frequency.weekly),
+    Phase(start: Age(6, TimeUnit.month), frequency: Frequency.monthly),
+  ]);
 
   test('daily phase gives one photo per day and ends where next begins', () {
     final dates = example().dueDates(d(2026, 10, 10), d(2026, 11, 20));
@@ -40,16 +40,24 @@ void main() {
     final s = PhotoSchedule(d(2026, 1, 31), const [
       Phase(start: Age.birth, frequency: Frequency.monthly),
     ]);
-    expect(s.dueDates(d(2026, 1, 1), d(2026, 4, 30)),
-        [d(2026, 1, 31), d(2026, 2, 28), d(2026, 3, 31), d(2026, 4, 30)]);
+    expect(s.dueDates(d(2026, 1, 1), d(2026, 4, 30)), [
+      d(2026, 1, 31),
+      d(2026, 2, 28),
+      d(2026, 3, 31),
+      d(2026, 4, 30),
+    ]);
   });
 
   test('every N units', () {
     final s = PhotoSchedule(birth, const [
       Phase(start: Age.birth, frequency: Frequency(3, TimeUnit.day)),
     ]);
-    expect(s.dueDates(birth, d(2026, 10, 19)),
-        [d(2026, 10, 10), d(2026, 10, 13), d(2026, 10, 16), d(2026, 10, 19)]);
+    expect(s.dueDates(birth, d(2026, 10, 19)), [
+      d(2026, 10, 10),
+      d(2026, 10, 13),
+      d(2026, 10, 16),
+      d(2026, 10, 19),
+    ]);
   });
 
   test('nextDueAfter skips ahead across phases', () {
@@ -60,10 +68,11 @@ void main() {
 
   test('phase starts must be strictly increasing', () {
     expect(
-        () => PhotoSchedule(birth, const [
-              Phase(start: Age(1, TimeUnit.month), frequency: Frequency.daily),
-              Phase(start: Age(30, TimeUnit.day), frequency: Frequency.weekly),
-            ]),
-        throwsArgumentError);
+      () => PhotoSchedule(birth, const [
+        Phase(start: Age(1, TimeUnit.month), frequency: Frequency.daily),
+        Phase(start: Age(30, TimeUnit.day), frequency: Frequency.weekly),
+      ]),
+      throwsArgumentError,
+    );
   });
 }

@@ -6,7 +6,7 @@ Full design: [docs/PLAN.md](docs/PLAN.md)
 
 ## Setup
 
-Status: planning/scaffolding. The Flutter app has not been generated yet.
+Status: early development. Profiles and onboarding work; camera, reminders and cloud sync are still to come.
 
 Requirements (planned): Flutter SDK (stable), Android Studio or Xcode, a Google Cloud OAuth client for Drive.
 
@@ -23,4 +23,5 @@ Planned flow: create a baby profile, connect Drive/iCloud, set the schedule and 
 
 ## Changelog
 
+- 2026-10-11: Baby profiles (several babies), onboarding with storage choice, schedule builder and reminder settings
 - 2026-10-10: Project created with the design plan

@@ -46,9 +46,9 @@ class Phase {
 
 class PhotoSchedule {
   PhotoSchedule(this.birthDate, List<Phase> phases)
-      : assert(phases.isNotEmpty),
-        _starts = phases.map((p) => p.start.from(birthDate)).toList(),
-        phases = List.unmodifiable(phases) {
+    : assert(phases.isNotEmpty),
+      _starts = phases.map((p) => p.start.from(birthDate)).toList(),
+      phases = List.unmodifiable(phases) {
     for (var i = 1; i < _starts.length; i++) {
       if (!_starts[i].isAfter(_starts[i - 1])) {
         throw ArgumentError('Phase starts must be strictly increasing');
@@ -69,7 +69,7 @@ class PhotoSchedule {
       final end = i + 1 < phases.length ? _starts[i + 1] : null; // exclusive
       final f = phases[i].frequency;
       if (start.isAfter(hi)) break;
-      for (var k = 0;; k++) {
+      for (var k = 0; ; k++) {
         // Anchor to the phase start each time so month steps never drift.
         final d = _add(start, f.unit, k * f.every);
         if (d.isAfter(hi) || (end != null && !d.isBefore(end))) break;
