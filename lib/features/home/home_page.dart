@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../common/drive_consent.dart';
@@ -10,8 +12,12 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/providers.dart';
 import '../../domain/age_label.dart';
 import '../../domain/baby.dart';
+import '../../notifications/calendar_status.dart';
+import '../common/calendar_actions.dart';
 import '../../ui/theme.dart';
 import '../baby/baby_page.dart';
+import '../baby/edit_baby_page.dart';
+import '../../notifications/google_calendar.dart' show calendarErrorMessage;
 import '../onboarding/onboarding_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -29,6 +35,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(babiesProvider.future);
       ref.read(babiesProvider.notifier).reschedule();
+      unawaited(ref.read(calendarStatusProvider.notifier).checkAll());
     });
   }
 
@@ -220,6 +227,28 @@ class _BabyCard extends ConsumerWidget {
   const _BabyCard(this.baby);
   final Baby baby;
 
+  /// Tapping the chip checks the calendar and shows the answer.
+  Future<void> _openCalendar(BuildContext context, WidgetRef ref) async {
+    if (baby.googleCalendarId == null || !baby.reminder.enabled) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => EditBabyPage(babyId: baby.id)),
+      );
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final c = await ref
+          .read(calendarStatusProvider.notifier)
+          .check(baby, prompt: true);
+      final badge = calendarBadge(baby, c);
+      messenger.showSnackBar(SnackBar(content: Text(badge.detail)));
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(calendarErrorMessage(e))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final photos = ref.watch(photosProvider(baby.id)).value ?? [];
@@ -286,6 +315,19 @@ class _BabyCard extends ConsumerWidget {
                                   ? 'Finish line reached ♥'
                                   : 'Next photo: ${loc.formatMediumDate(next)}',
                               style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          if (useGoogleCalendar)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: CalendarChip(
+                                badge: calendarBadge(
+                                  baby,
+                                  ref
+                                      .watch(calendarStatusProvider)
+                                      .value?[baby.id],
+                                ),
+                                onTap: () => _openCalendar(context, ref),
+                              ),
                             ),
                           if (baby.storage == StorageMode.appOnly)
                             Text(

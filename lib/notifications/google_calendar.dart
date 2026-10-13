@@ -5,6 +5,7 @@ import 'package:googleapis/calendar/v3.dart' as cal;
 import '../data/google_auth.dart';
 import '../domain/age_label.dart';
 import '../domain/baby.dart';
+import 'calendar_status.dart';
 import 'reminder_planner.dart';
 
 /// Photo reminders as events in the user's own Google Calendar.
@@ -39,7 +40,10 @@ class GoogleCalendarReminders {
   static const windowSize = 60;
 
   /// Asks Google for permission (needs a user tap on the web).
-  Future<void> connect() => GoogleAuth.authorize(scopes);
+  Future<void> connect() async {
+    if (apiFactory != null) return; // tests: no Google window
+    await GoogleAuth.authorize(scopes);
+  }
 
   /// Tests plug in a fake calendar server here.
   cal.CalendarApi Function({required bool prompt})? apiFactory;
@@ -111,6 +115,67 @@ class GoogleCalendarReminders {
     return calendarId;
   }
 
+  /// How many reminders [sync] should leave in the calendar.
+  static int expectedCount(Baby baby, DateTime now, Set<DateTime> photoDates) =>
+      baby.reminder.enabled
+      ? planReminders(
+          baby,
+          now,
+          photoDates: photoDates,
+          max: windowSize,
+        ).length
+      : 0;
+
+  /// Looks in Google Calendar: does the baby's calendar still exist, and how
+  /// many upcoming reminders does it hold? Never creates anything. Throws
+  /// [CalendarNotConnected] when [prompt] is false and Google needs a tap.
+  Future<CalendarCheck> check(
+    Baby baby,
+    DateTime now, {
+    bool prompt = false,
+  }) async {
+    final id = baby.googleCalendarId!;
+    final api = _api(prompt: prompt);
+    var count = 0;
+    DateTime? next;
+    try {
+      await api.calendars.get(id);
+      String? token;
+      do {
+        final page = await api.events.list(
+          id,
+          timeMin: now.toUtc(),
+          singleEvents: true,
+          maxResults: 250,
+          pageToken: token,
+        );
+        for (final e in page.items ?? <cal.Event>[]) {
+          if (e.status == 'cancelled') continue;
+          count++;
+          final start = e.start?.dateTime?.toLocal();
+          if (start != null && (next == null || start.isBefore(next))) {
+            next = start;
+          }
+        }
+        token = page.nextPageToken;
+      } while (token != null);
+    } on cal.DetailedApiRequestError catch (e) {
+      if (e.status != 404 && e.status != 410) rethrow;
+      return CalendarCheck(
+        state: CalendarState.missing,
+        calendarId: id,
+        checkedAt: now,
+      );
+    }
+    return CalendarCheck(
+      state: CalendarState.ok,
+      calendarId: id,
+      checkedAt: now,
+      count: count,
+      next: next,
+    );
+  }
+
   /// Deletes the baby's calendar (for example when the baby is removed).
   Future<void> remove(Baby baby, {bool prompt = false}) async {
     final id = baby.googleCalendarId;
@@ -124,6 +189,8 @@ class GoogleCalendarReminders {
     if (existing != null) {
       try {
         await api.calendars.get(existing);
+        // A calendar deleted by hand can still answer `get`; its events cannot.
+        await api.events.list(existing, maxResults: 1);
         return existing;
       } on cal.DetailedApiRequestError catch (e) {
         if (e.status != 404 && e.status != 410) rethrow;
@@ -192,6 +259,10 @@ class CalendarNotConnected implements Exception {
 /// owner) can act on. "Allow access" is only said when that is really the
 /// problem.
 String calendarErrorMessage(Object e) {
+  if (e is CalendarMismatch) {
+    return 'Google Calendar only holds ${e.found} of ${e.expected} reminders. '
+        'Tap again; if it stays this way, check the "Baby Photobook" calendar is ticked in Google Calendar.';
+  }
   if (e is CalendarNotConnected) {
     return 'Google Calendar is not allowed yet. Tap again and allow Calendar access.';
   }

@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/baby.dart';
+import '../notifications/calendar_status.dart';
 import '../notifications/google_calendar.dart';
 import '../notifications/reminder_service.dart';
 import 'baby_repository.dart';
@@ -105,24 +107,42 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
   }
 
   /// Puts the baby's reminders into their Google Calendar. Asks Google for
-  /// permission first when [prompt] is true (call it from a tap). Returns
-  /// the calendar id.
-  Future<String> syncGoogleCalendar(Baby baby, {bool prompt = true}) async {
+  /// permission first when [prompt] is true (call it from a tap). Reads the
+  /// calendar back afterwards and returns what is really in it; throws
+  /// [CalendarMismatch] when fewer reminders are there than planned.
+  Future<CalendarCheck> syncGoogleCalendar(
+    Baby baby, {
+    bool prompt = true,
+  }) async {
     if (prompt) await GoogleCalendarReminders.instance.connect();
     final lib = await ref.read(photoLibraryProvider(baby.id).future);
     final dates = (await lib.list()).map((p) => p.date).toSet();
     final current =
         (state.value ?? []).where((b) => b.id == baby.id).firstOrNull ?? baby;
+    final now = DateTime.now();
     final id = await GoogleCalendarReminders.instance.sync(
       current,
-      DateTime.now(),
+      now,
       dates,
       prompt: prompt,
     );
-    if (id != current.googleCalendarId) {
-      await updateBaby(current.copyWith(googleCalendarId: id));
+    final linked = current.copyWith(googleCalendarId: id);
+    if (id != current.googleCalendarId) await updateBaby(linked);
+    final result = await GoogleCalendarReminders.instance.check(
+      linked,
+      now,
+      prompt: prompt,
+    );
+    await ref.read(calendarStatusProvider.notifier).record(baby.id, result);
+    final expected = GoogleCalendarReminders.expectedCount(
+      linked,
+      now,
+      dates,
+    );
+    if (!result.exists || result.count < expected) {
+      throw CalendarMismatch(expected, result.count);
     }
-    return id;
+    return result;
   }
 
   Future<void> _lastReschedule = Future.value();
@@ -280,4 +300,72 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
 final photosProvider =
     AsyncNotifierProvider.family<PhotosNotifier, List<PhotoEntry>, String>(
       PhotosNotifier.new,
+    );
+
+/// The last known state of each baby's Google Calendar, kept on the device
+/// so the list can show it at once. Refreshed in the background, never on
+/// redraw, and without opening Google's window.
+class CalendarStatusNotifier extends AsyncNotifier<Map<String, CalendarCheck>> {
+  static const _key = 'calendar_status.json';
+
+  @override
+  Future<Map<String, CalendarCheck>> build() async {
+    final store = await ref.watch(localStoreProvider.future);
+    final bytes = await store.read(_key);
+    if (bytes == null) return {};
+    try {
+      return CalendarCheck.decodeAll(utf8.decode(bytes));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> record(String babyId, CalendarCheck? check) async {
+    final next = {...?state.value};
+    if (check == null) {
+      next.remove(babyId);
+    } else {
+      next[babyId] = check;
+    }
+    state = AsyncData(next);
+    final store = await ref.read(localStoreProvider.future);
+    await store.write(
+      _key,
+      Uint8List.fromList(utf8.encode(CalendarCheck.encodeAll(next))),
+    );
+  }
+
+  /// Checks one baby's calendar. Returns null when Google needs a tap (and
+  /// [prompt] is false) or the check could not run.
+  Future<CalendarCheck?> check(Baby baby, {bool prompt = false}) async {
+    if (baby.googleCalendarId == null || !baby.reminder.enabled) return null;
+    try {
+      if (prompt) await GoogleCalendarReminders.instance.connect();
+      final c = await GoogleCalendarReminders.instance.check(
+        baby,
+        DateTime.now(),
+        prompt: prompt,
+      );
+      await record(baby.id, c);
+      return c;
+    } on CalendarNotConnected {
+      return null;
+    } catch (_) {
+      if (prompt) rethrow;
+      return null;
+    }
+  }
+
+  /// Background refresh when the app opens: one baby at a time.
+  Future<void> checkAll() async {
+    await future;
+    for (final b in [...?ref.read(babiesProvider).value]) {
+      await check(b);
+    }
+  }
+}
+
+final calendarStatusProvider =
+    AsyncNotifierProvider<CalendarStatusNotifier, Map<String, CalendarCheck>>(
+      CalendarStatusNotifier.new,
     );

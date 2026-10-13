@@ -12,7 +12,7 @@ import '../../data/photo_library.dart';
 import '../../data/providers.dart';
 import '../../domain/age_label.dart';
 import '../../domain/baby.dart';
-import '../../notifications/google_calendar.dart';
+import '../common/calendar_actions.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
 import 'capture.dart';
@@ -61,36 +61,21 @@ class _BabyPageState extends ConsumerState<BabyPage> {
     messenger.showSnackBar(
       const SnackBar(content: Text('Adding reminders to Google Calendar...')),
     );
-    try {
-      await ref.read(babiesProvider.notifier).syncGoogleCalendar(baby);
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              'Done. Look for the calendar "Baby Photobook - ${baby.name}" in Google Calendar.',
-            ),
-            action: SnackBarAction(
-              label: 'Open',
-              onPressed: () => launchUrl(
-                Uri.parse('https://calendar.google.com/calendar/u/0/r'),
-                mode: LaunchMode.externalApplication,
-              ),
-            ),
-          ),
-        );
-    } catch (e) {
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 10),
-            content: Text(
-              'Could not add the reminders. ${calendarErrorMessage(e)}',
-            ),
-          ),
-        );
-    }
+    final r = await updateGoogleCalendar(ref, baby);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: Duration(seconds: r.ok ? 5 : 10),
+          content: Text(r.message),
+          action: r.ok
+              ? SnackBarAction(
+                  label: 'Open',
+                  onPressed: () => openInGoogleCalendar(baby),
+                )
+              : null,
+        ),
+      );
   }
 
   Future<void> _connectDrive(Baby baby) async {

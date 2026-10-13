@@ -14,8 +14,13 @@ class FakeCalendarServer {
   final deletedIds = <String>{};
   bool calendarExists = false;
   int calendarsCreated = 0;
+  int calls = 0;
+
+  /// Pretend writes succeed but nothing is kept (a hidden/broken calendar).
+  bool dropWrites = false;
 
   Future<http.Response> handle(http.Request r) async {
+    calls++;
     final path = r.url.path;
     http.Response ok(Object body) => http.Response(
       jsonEncode(body),
@@ -42,11 +47,12 @@ class FakeCalendarServer {
       return ok({});
     }
     if (path.endsWith('/calendars/cal1/events') && r.method == 'GET') {
+      if (!calendarExists) return err(404);
       return ok({'items': events.values.toList()});
     }
     if (path.endsWith('/calendars/cal1/events') && r.method == 'POST') {
       final e = jsonDecode(r.body) as Map<String, dynamic>;
-      events[e['id'] as String] = e;
+      if (!dropWrites) events[e['id'] as String] = e;
       return ok(e);
     }
     final m = RegExp(r'/calendars/cal1/events/(.+)$').firstMatch(path);

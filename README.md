@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-14: Google Calendar status: each baby card and the Settings box show whether the calendar really exists (green "Calendar ✓" with reminder count and next reminder, red "Calendar missing" with a "Fix it" button, amber "Tap to check"); "Update calendar" always answers and reads the calendar back before saying Done
 - 2026-10-14: Every Google Calendar reminder now carries a link that opens the app (in the event description and as the event source); existing events get it the next time the calendar is updated
 - 2026-10-14: Finish line is now just one row (age with - / + and a unit dropdown); years added to the dropdown (saved as months)
 - 2026-10-14: Finish line in the schedule settings (stop at an age, with one last photo that day); the photo-day calendar shows which days already have a photo and which are photo days; orange theme for the neutral colour (girl pink and boy blue stay), light and dark mode; Google Calendar errors now say what is actually wrong; start screen adapts to short windows
