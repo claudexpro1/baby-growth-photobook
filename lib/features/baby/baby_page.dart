@@ -12,6 +12,7 @@ import '../../data/photo_library.dart';
 import '../../data/providers.dart';
 import '../../domain/age_label.dart';
 import '../../domain/baby.dart';
+import '../../domain/milestones.dart';
 import '../common/baby_avatar.dart';
 import '../common/calendar_actions.dart';
 import '../../notifications/reminder_service.dart';
@@ -309,18 +310,41 @@ class _BabyPageState extends ConsumerState<BabyPage> {
     Baby baby,
     List<PhotoEntry> photos,
   ) {
+    // Sections by age; milestones sit in the section of their day, even when
+    // that section has no photo yet.
     final sections = <String, List<PhotoEntry>>{};
+    final starts = <String, DateTime>{};
+    final marks = <String, List<Milestone>>{};
     for (final p in photos) {
-      sections.putIfAbsent(ageSection(baby.birth, p.date), () => []).add(p);
+      final k = ageSection(baby.birth, p.date);
+      sections.putIfAbsent(k, () => []).add(p);
+      starts[k] = starts[k] == null || p.date.isBefore(starts[k]!)
+          ? p.date
+          : starts[k]!;
     }
-    final out = <Widget>[];
-    for (final e in sections.entries) {
+    for (final m in reachedMilestones(baby.birth, DateTime.now())) {
+      final k = ageSection(baby.birth, m.date);
+      marks.putIfAbsent(k, () => []).add(m);
+      sections.putIfAbsent(k, () => []);
+      starts[k] = starts[k] == null || m.date.isBefore(starts[k]!)
+          ? m.date
+          : starts[k]!;
+    }
+    final keys = sections.keys.toList()
+      ..sort((a, c) => starts[a]!.compareTo(starts[c]!));
+    final out = <Widget>[_birthStory(context, baby)];
+    for (final k in keys) {
+      final e = MapEntry(k, sections[k]!);
       out.add(
         Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 8),
           child: Text(e.key, style: Theme.of(context).textTheme.titleMedium),
         ),
       );
+      for (final m in marks[k] ?? const <Milestone>[]) {
+        out.add(_milestoneCard(context, m));
+      }
+      if (e.value.isEmpty) continue;
       out.add(
         GridView.count(
           shrinkWrap: true,
@@ -388,6 +412,75 @@ class _BabyPageState extends ConsumerState<BabyPage> {
       );
     }
     return out;
+  }
+
+  Widget _birthStory(BuildContext context, Baby baby) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: scheme.primaryContainer.withValues(alpha: 0.45),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Text('🍼', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Our story begins',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  Text(
+                    '${baby.name}, ${bornText(context, baby)} (a ${_weekday(baby.birth)}).',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _weekday(DateTime d) => const [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ][d.weekday - 1];
+
+  Widget _milestoneCard(BuildContext context, Milestone m) {
+    final loc = MaterialLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            children: [
+              const Text('🎉', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '${m.label} old · ${loc.formatMediumDate(m.date)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

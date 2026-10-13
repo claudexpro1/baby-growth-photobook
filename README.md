@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-14: Timeline shows an "Our story begins" birth card and milestone cards (1 week, 1 month, 100 days, 3 months ... each birthday)
 - 2026-10-14: Everything entered at registration (name, colours, birth date and time, place of birth) can be changed in Settings; a new name renames the Drive folder and the Google Calendar, a new birth date asks first and moves the photo days
 - 2026-10-14: Schedule settings show real dates (per step, next photo days, finish-line day); baby page shows "born ... · N days old"; friendlier empty-photo avatar; "Bring back babies from Google Drive" moved to the menu; orange favicon with cache-busting
 - 2026-10-14: Google Calendar status: each baby card and the Settings box show whether the calendar really exists (green "Calendar ✓" with reminder count and next reminder, red "Calendar missing" with a "Fix it" button, amber "Tap to check"); "Update calendar" always answers and reads the calendar back before saying Done
