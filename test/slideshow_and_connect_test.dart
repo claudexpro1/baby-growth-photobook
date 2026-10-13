@@ -46,7 +46,10 @@ void main() {
         () => Future.delayed(const Duration(milliseconds: 100)),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('no server of ours'), findsOneWidget);
+      expect(
+        find.textContaining('becomes a story you will treasure'),
+        findsOneWidget,
+      );
       expect(find.text('I already registered my baby'), findsOneWidget);
 
       await tester.tap(find.text('Start with your baby'));

@@ -56,7 +56,11 @@ class WelcomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final headline = (width * 0.125).clamp(34.0, 56.0);
+    // On a laptop the content sits in a centred column instead of stretching
+    // across the whole window.
+    final wide = width > 700;
+    final headline = wide ? 60.0 : (width * 0.125).clamp(34.0, 56.0);
+    final doodle = wide ? 56.0 : 40.0;
     return ColoredBox(
       color: _cream,
       child: Stack(
@@ -76,7 +80,7 @@ class WelcomeView extends StatelessWidget {
                             angle: turns * 6.2832,
                             child: Text(
                               emoji,
-                              style: const TextStyle(fontSize: 40),
+                              style: TextStyle(fontSize: doodle),
                             ),
                           ),
                         ),
@@ -91,78 +95,90 @@ class WelcomeView extends StatelessWidget {
               slivers: [
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Baby Photobook',
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w700,
-                            fontVariations: [FontVariation('wght', 700)],
-                            color: _orange,
-                          ),
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          24,
+                          wide ? 72 : 48,
+                          24,
+                          wide ? 56 : 24,
                         ),
-                        const Spacer(),
-                        Text(
-                          'A few photos, kept with care',
-                          style: TextStyle(
-                            fontSize: headline,
-                            height: 1.05,
-                            fontWeight: FontWeight.w800,
-                            fontVariations: const [FontVariation('wght', 800)],
-                            color: _orange,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'One photo now and then, saved in your own Drive, '
-                          'becomes a story you will treasure. No account to make '
-                          'and no server of ours: only you can see them.',
-                          style: TextStyle(
-                            fontSize: 18,
-                            height: 1.45,
-                            color: _brown,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        FilledButton(
-                          onPressed: onStart,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: _orange,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size.fromHeight(60),
-                            shape: const StadiumBorder(),
-                            textStyle: const TextStyle(
-                              fontFamily: 'DMSans',
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              fontVariations: [FontVariation('wght', 700)],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Baby Photobook',
+                              style: TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                fontVariations: [FontVariation('wght', 700)],
+                                color: _orange,
+                              ),
                             ),
-                          ),
-                          child: const Text('Start with your baby'),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: busy ? null : onRestore,
-                          icon: const Icon(Icons.cloud_download_outlined),
-                          label: const Text('I already registered my baby'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: _peach,
-                            foregroundColor: _orange,
-                            minimumSize: const Size.fromHeight(56),
-                            shape: const StadiumBorder(),
-                            textStyle: const TextStyle(
-                              fontFamily: 'DMSans',
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              fontVariations: [FontVariation('wght', 600)],
+                            const Spacer(),
+                            Text(
+                              'A few photos, kept with care',
+                              style: TextStyle(
+                                fontSize: headline,
+                                height: 1.05,
+                                fontWeight: FontWeight.w800,
+                                fontVariations: const [
+                                  FontVariation('wght', 800),
+                                ],
+                                color: _orange,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'One photo now and then, saved in your own Drive, '
+                              'becomes a story you will treasure.',
+                              style: TextStyle(
+                                fontSize: 18,
+                                height: 1.45,
+                                color: _brown,
+                              ),
+                            ),
+                            const Spacer(),
+                            FilledButton(
+                              onPressed: onStart,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _orange,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(60),
+                                shape: const StadiumBorder(),
+                                textStyle: const TextStyle(
+                                  fontFamily: 'DMSans',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  fontVariations: [FontVariation('wght', 700)],
+                                ),
+                              ),
+                              child: const Text('Start with your baby'),
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: busy ? null : onRestore,
+                              icon: const Icon(Icons.cloud_download_outlined),
+                              label: const Text('I already registered my baby'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _peach,
+                                foregroundColor: _orange,
+                                minimumSize: const Size.fromHeight(56),
+                                shape: const StadiumBorder(),
+                                textStyle: const TextStyle(
+                                  fontFamily: 'DMSans',
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  fontVariations: [FontVariation('wght', 600)],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
