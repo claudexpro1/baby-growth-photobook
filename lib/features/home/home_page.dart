@@ -257,9 +257,9 @@ class _BabyCard extends ConsumerWidget {
   /// Tapping the chip checks the calendar and shows the answer.
   Future<void> _openCalendar(BuildContext context, WidgetRef ref) async {
     if (baby.googleCalendarId == null || !baby.reminder.enabled) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => EditBabyPage(babyId: baby.id)),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => EditBabyPage(babyId: baby.id)));
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
@@ -270,9 +270,7 @@ class _BabyCard extends ConsumerWidget {
       final badge = calendarBadge(baby, c);
       messenger.showSnackBar(SnackBar(content: Text(badge.detail)));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(calendarErrorMessage(e))),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(calendarErrorMessage(e))));
     }
   }
 

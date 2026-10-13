@@ -37,8 +37,8 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('Has a photo'), findsOneWidget);
-    expect(find.text('Photo day, no photo yet'), findsOneWidget);
+    expect(find.text('Photo taken'), findsOneWidget);
+    expect(find.text('Photo day, still empty'), findsOneWidget);
     // the day with a photo says so for screen readers
     expect(
       find.bySemanticsLabel(RegExp(r'October 10, 2026.*has a photo')),
@@ -48,6 +48,7 @@ void main() {
       find.bySemanticsLabel(RegExp(r'October 17, 2026.*photo day')),
       findsOneWidget,
     );
+    expect(find.text('Chosen day'), findsOneWidget);
     // days after "last" cannot be chosen
     await tester.tap(
       find.byKey(const Key('day-2026-10-29')),

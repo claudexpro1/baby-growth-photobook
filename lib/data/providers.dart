@@ -134,11 +134,7 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
       prompt: prompt,
     );
     await ref.read(calendarStatusProvider.notifier).record(baby.id, result);
-    final expected = GoogleCalendarReminders.expectedCount(
-      linked,
-      now,
-      dates,
-    );
+    final expected = GoogleCalendarReminders.expectedCount(linked, now, dates);
     if (!result.exists || result.count < expected) {
       throw CalendarMismatch(expected, result.count);
     }

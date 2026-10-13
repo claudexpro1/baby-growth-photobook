@@ -35,7 +35,9 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
   void initState() {
     super.initState();
     _refresh();
-    if (useGoogleCalendar) WidgetsBinding.instance.addPostFrameCallback((_) => _check());
+    if (useGoogleCalendar) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _check());
+    }
   }
 
   /// Looks in Google Calendar when Settings opens (never opens Google's window).
@@ -152,8 +154,7 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
           'Google Calendar notifies you on every device where it is installed.',
         if (badge.tone == BadgeTone.bad)
           'Tap "Fix it" to make a new calendar with the reminders.',
-        if (badge.tone == BadgeTone.quiet)
-          'A web page cannot send reminders by itself, so this app uses Google Calendar.',
+        if (badge.tone == BadgeTone.quiet) 'A web page cannot send reminders by itself, so this app uses Google Calendar.',
         if (last != null && baby.googleCalendarId != null)
           'Last checked ${_ago(last.checkedAt)}.',
       ];

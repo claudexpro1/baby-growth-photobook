@@ -84,4 +84,14 @@ void main() {
   }
   File('web/favicon.png')
       .writeAsBytesSync(img.encodePng(icon(64, maskable: false)));
+  for (final s in [16, 32, 48]) {
+    File('web/icons/favicon-$s.png')
+        .writeAsBytesSync(img.encodePng(icon(s, maskable: false)));
+  }
+  // iOS rounds the corners itself, so the touch icon is full-bleed.
+  File('web/icons/apple-touch-icon.png')
+      .writeAsBytesSync(img.encodePng(icon(180, maskable: true)));
+  // Old browsers and some tab strips still ask for /favicon.ico.
+  File('web/favicon.ico')
+      .writeAsBytesSync(img.encodeIco(icon(48, maskable: false)));
 }

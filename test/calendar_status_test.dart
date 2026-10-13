@@ -80,7 +80,10 @@ void main() {
   test('badge words and colours', () {
     expect(calendarBadge(_baby(reminders: false), null).label, 'Calendar off');
     expect(calendarBadge(_baby(), null).label, 'Not in Calendar yet');
-    expect(calendarBadge(_baby(calendarId: 'cal1'), null).label, 'Tap to check');
+    expect(
+      calendarBadge(_baby(calendarId: 'cal1'), null).label,
+      'Tap to check',
+    );
     final missing = CalendarCheck(
       state: CalendarState.missing,
       calendarId: 'cal1',
@@ -135,7 +138,10 @@ void main() {
       _baby(calendarId: 'cal1'),
       const _Gate(EditBabyPage(babyId: 'abc1')),
     );
-    expect(find.textContaining('Not found in your Google Calendar'), findsOneWidget);
+    expect(
+      find.textContaining('Not found in your Google Calendar'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Fix it'));
     await tester.runAsync(

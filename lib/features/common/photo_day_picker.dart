@@ -156,7 +156,7 @@ class _PhotoDayPickerState extends State<PhotoDayPicker> {
                     ),
                     child: Icon(Icons.check, size: 12, color: scheme.onPrimary),
                   ),
-                  'Has a photo',
+                  'Photo taken',
                 ),
                 if (widget.dueDays.isNotEmpty)
                   _legend(
@@ -168,9 +168,26 @@ class _PhotoDayPickerState extends State<PhotoDayPicker> {
                         border: Border.all(color: scheme.primary, width: 2),
                       ),
                     ),
-                    'Photo day, no photo yet',
+                    'Photo day, still empty',
                   ),
+                _legend(
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: scheme.tertiaryContainer,
+                      border: Border.all(color: scheme.tertiary, width: 2),
+                    ),
+                  ),
+                  'Chosen day',
+                ),
               ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Photo days follow your schedule. You can add a photo on any day.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
@@ -209,12 +226,13 @@ class _PhotoDayPickerState extends State<PhotoDayPicker> {
     final label =
         '${loc.formatFullDate(day)}${has ? ', has a photo' : ''}'
         '${!has && due ? ', photo day' : ''}';
-    final bg = has ? scheme.primary : null;
     final fg = !enabled
         ? scheme.onSurface.withValues(alpha: 0.3)
         : has
         ? scheme.onPrimary
         : scheme.onSurface;
+    // Two layers: the outer ring marks the chosen day, the inner circle keeps
+    // the photo-day ring or the photo fill, so both can be read at once.
     return Semantics(
       label: label,
       button: true,
@@ -223,22 +241,43 @@ class _PhotoDayPickerState extends State<PhotoDayPicker> {
         key: Key('day-${day.year}-${day.month}-${day.day}'),
         onTap: enabled ? () => setState(() => _selected = day) : null,
         child: Container(
-          margin: const EdgeInsets.all(2),
+          margin: const EdgeInsets.all(1),
+          padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
-            color: bg,
             shape: BoxShape.circle,
+            color: selected ? scheme.tertiaryContainer : null,
             border: selected
-                ? Border.all(color: scheme.tertiary, width: 3)
-                : (due && !has
-                      ? Border.all(color: scheme.primary, width: 2)
-                      : null),
+                ? Border.all(color: scheme.tertiary, width: 2)
+                : null,
           ),
-          alignment: Alignment.center,
-          child: Text(
-            '${day.day}',
-            style: TextStyle(
-              color: fg,
-              fontWeight: has || selected ? FontWeight.w700 : null,
+          child: Container(
+            decoration: BoxDecoration(
+              color: has ? scheme.primary : null,
+              shape: BoxShape.circle,
+              border: due && !has
+                  ? Border.all(color: scheme.primary, width: 2)
+                  : null,
+            ),
+            alignment: Alignment.center,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Text(
+                  '${day.day}',
+                  style: TextStyle(
+                    color: has
+                        ? fg
+                        : (selected ? scheme.onTertiaryContainer : fg),
+                    fontWeight: has || selected ? FontWeight.w700 : null,
+                  ),
+                ),
+                if (has)
+                  Positioned(
+                    right: 1,
+                    bottom: 1,
+                    child: Icon(Icons.check, size: 9, color: fg),
+                  ),
+              ],
             ),
           ),
         ),

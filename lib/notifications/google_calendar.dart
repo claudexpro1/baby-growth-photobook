@@ -118,12 +118,7 @@ class GoogleCalendarReminders {
   /// How many reminders [sync] should leave in the calendar.
   static int expectedCount(Baby baby, DateTime now, Set<DateTime> photoDates) =>
       baby.reminder.enabled
-      ? planReminders(
-          baby,
-          now,
-          photoDates: photoDates,
-          max: windowSize,
-        ).length
+      ? planReminders(baby, now, photoDates: photoDates, max: windowSize).length
       : 0;
 
   /// Looks in Google Calendar: does the baby's calendar still exist, and how
