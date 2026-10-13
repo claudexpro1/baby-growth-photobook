@@ -25,22 +25,50 @@ class PhaseDraft {
   );
 }
 
+/// Units offered for the finish line. Years are only a convenience: they are
+/// saved as months (2 years = 24 months), so the schedule engine is unchanged.
+enum FinishUnit { day, week, month, year }
+
 /// The editable finish line: the age at which the photo series stops.
 class FinishDraft {
   FinishDraft({
     this.enabled = false,
-    this.value = 24,
-    this.unit = TimeUnit.month,
+    this.value = 2,
+    this.unit = FinishUnit.year,
   });
   bool enabled;
   int value;
-  TimeUnit unit;
+  FinishUnit unit;
 
-  factory FinishDraft.from(Age? end) => end == null
-      ? FinishDraft()
-      : FinishDraft(enabled: true, value: end.value, unit: end.unit);
+  /// Whole years show as years, so a saved 24 months reads "2 years".
+  factory FinishDraft.from(Age? end) {
+    if (end == null) return FinishDraft();
+    if (end.unit == TimeUnit.month && end.value >= 12 && end.value % 12 == 0) {
+      return FinishDraft(
+        enabled: true,
+        value: end.value ~/ 12,
+        unit: FinishUnit.year,
+      );
+    }
+    return FinishDraft(
+      enabled: true,
+      value: end.value,
+      unit: switch (end.unit) {
+        TimeUnit.day => FinishUnit.day,
+        TimeUnit.week => FinishUnit.week,
+        TimeUnit.month => FinishUnit.month,
+      },
+    );
+  }
 
-  Age? toAge() => enabled ? Age(value, unit) : null;
+  Age? toAge() => !enabled
+      ? null
+      : switch (unit) {
+          FinishUnit.day => Age(value, TimeUnit.day),
+          FinishUnit.week => Age(value, TimeUnit.week),
+          FinishUnit.month => Age(value, TimeUnit.month),
+          FinishUnit.year => Age(value * 12, TimeUnit.month),
+        };
 }
 
 /// Returns an error message if the phases (and finish line) cannot form a
@@ -135,7 +163,7 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
     final f = widget.finish;
     if (f != null && f.enabled) {
       parts.add(
-        'Finish line at ${ageSpanLabel(f.value, f.unit)}: a last photo, then done',
+        'Finish line at ${ageSpanLabel(f.toAge()!.value, f.toAge()!.unit)}: a last photo, then done',
       );
     }
     return parts.join('\n');
@@ -208,49 +236,51 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
   }
 
   Widget _finishCard(FinishDraft f) {
+    String plural(FinishUnit u) => '${u.name}${f.value == 1 ? '' : 's'}';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // The switch is how the finish line is turned on and off.
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Finish line'),
-              subtitle: const Text(
-                'Stop the photos and reminders at an age you choose. '
-                'The finish-line day gets one last photo.',
-              ),
               value: f.enabled,
               onChanged: (v) => _change(() => f.enabled = v),
             ),
-            if (f.enabled) ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
+            if (f.enabled)
+              Row(
                 children: [
-                  for (final y in const [1, 2, 3, 5, 18])
-                    ChoiceChip(
-                      label: Text('$y year${y == 1 ? '' : 's'}'),
-                      selected: f.unit == TimeUnit.month && f.value == y * 12,
-                      onSelected: (_) => _change(() {
-                        f.value = y * 12;
-                        f.unit = TimeUnit.month;
-                      }),
-                    ),
+                  const Expanded(child: Text('Finish line at age')),
+                  IconButton(
+                    tooltip: 'Less',
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: f.value > 1
+                        ? () => _change(() => f.value--)
+                        : null,
+                  ),
+                  SizedBox(
+                    width: 24,
+                    child: Text('${f.value}', textAlign: TextAlign.center),
+                  ),
+                  IconButton(
+                    tooltip: 'More',
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => _change(() => f.value++),
+                  ),
+                  DropdownButton<FinishUnit>(
+                    value: f.unit,
+                    underline: const SizedBox(),
+                    items: [
+                      for (final u in FinishUnit.values)
+                        DropdownMenuItem(value: u, child: Text(plural(u))),
+                    ],
+                    onChanged: (u) => _change(() => f.unit = u!),
+                  ),
                 ],
               ),
-              _row(
-                'Finish line at age',
-                f.value,
-                f.unit,
-                1,
-                (v, u) => _change(() {
-                  f.value = v;
-                  f.unit = u;
-                }),
-              ),
-            ],
           ],
         ),
       ),
