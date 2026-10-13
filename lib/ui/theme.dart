@@ -16,10 +16,10 @@ const brandOrange = Color(0xFFC4420F);
 const _creamLight = Color(0xFFFFF6EE);
 const _creamDark = Color(0xFF1E1613);
 
-/// The theme for [gender] that follows the phone's light or dark setting.
-/// Use this for per-baby screens, which sit inside their own [Theme].
-ThemeData themeFor(BuildContext context, Gender gender) =>
-    buildTheme(gender, brightness: MediaQuery.platformBrightnessOf(context));
+/// The theme for [gender]. Always light: the app keeps its cream-and-orange
+/// look even when the phone is in dark mode. (A dark palette still exists in
+/// [buildTheme] if it is ever offered as a choice.)
+ThemeData themeFor(BuildContext context, Gender gender) => buildTheme(gender);
 
 ThemeData buildTheme(
   Gender gender, {

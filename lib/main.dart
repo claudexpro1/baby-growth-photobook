@@ -17,8 +17,9 @@ class PhotobookApp extends StatelessWidget {
     return MaterialApp(
       title: 'Baby Photobook',
       debugShowCheckedModeBanner: false,
+      // Always the light, cream-and-orange look, whatever the phone's setting.
       theme: buildTheme(Gender.neutral),
-      darkTheme: buildTheme(Gender.neutral, brightness: Brightness.dark),
+      themeMode: ThemeMode.light,
       home: const HomePage(),
     );
   }

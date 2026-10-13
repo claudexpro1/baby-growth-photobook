@@ -1,6 +1,8 @@
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/features/home/welcome_view.dart';
+import 'package:baby_growth_photobook/main.dart';
 import 'package:baby_growth_photobook/ui/theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -35,7 +37,9 @@ void main() {
     }
   });
 
-  testWidgets('themeFor follows the phone setting', (tester) async {
+  testWidgets('themeFor stays light even when the phone is in dark mode', (
+    tester,
+  ) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
     late ThemeData got;
@@ -49,7 +53,8 @@ void main() {
         ),
       ),
     );
-    expect(got.brightness, Brightness.dark);
+    expect(got.brightness, Brightness.light);
+    expect(got.scaffoldBackgroundColor, const Color(0xFFFFF6EE));
   });
 
   testWidgets('start screen has a dark version', (tester) async {
@@ -76,5 +81,15 @@ void main() {
 
     expect(await bg(Brightness.light), const Color(0xFFFFF6EE));
     expect(await bg(Brightness.dark), const Color(0xFF1E1613));
+  });
+
+  testWidgets('the whole app stays light in phone dark mode', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await tester.pumpWidget(const ProviderScope(child: PhotobookApp()));
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.themeMode, ThemeMode.light);
+    expect(app.darkTheme, isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 }
