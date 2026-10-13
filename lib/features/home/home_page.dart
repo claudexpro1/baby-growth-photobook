@@ -49,18 +49,42 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (!mounted) return;
     setState(() => _restoring = true);
     String message;
+    var found = 0;
     try {
-      final n = await ref.read(babiesProvider.notifier).restoreFromDrive();
-      message = n == 0
+      found = await ref.read(babiesProvider.notifier).restoreFromDrive();
+      message = found == 0
           ? 'No new babies found in your Google Drive.'
-          : (n == 1
+          : (found == 1
                 ? 'Restored 1 baby from Google Drive.'
-                : 'Restored $n babies from Google Drive.');
+                : 'Restored $found babies from Google Drive.');
     } catch (_) {
       message = 'Could not reach Google Drive. Please check your connection and try again.';
     }
     if (!mounted) return;
     setState(() => _restoring = false);
+    // Found babies: the list is already on screen, a short note is enough.
+    // Nothing found: say it clearly, so the start screen does not look stuck.
+    if (found == 0) {
+      await showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Nothing to bring back'),
+          content: Text(
+            message.startsWith('No new')
+                ? 'We looked in the "BabyPhotobook" folder of the Google account you chose and found no babies that are not already here.\n\nIf you expected some, check you chose the same Google account you used before.'
+                : message,
+          ),
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+              onPressed: () => Navigator.pop(c),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
@@ -180,16 +204,19 @@ class _HomePageState extends ConsumerState<HomePage> {
           : AppBar(
               title: const Text('Baby Photobook'),
               actions: [
-                IconButton(
-                  tooltip: 'Bring back my babies from Google Drive',
-                  onPressed: _restoring ? null : _restore,
-                  icon: const Icon(Icons.cloud_download_outlined),
-                ),
                 PopupMenuButton<String>(
-                  onSelected: (v) =>
-                      v == 'disconnect' ? _disconnectDrive() : _deleteAll(),
-                  itemBuilder: (_) => const [
+                  onSelected: (v) => switch (v) {
+                    'restore' => _restore(),
+                    'disconnect' => _disconnectDrive(),
+                    _ => _deleteAll(),
+                  },
+                  itemBuilder: (_) => [
                     PopupMenuItem(
+                      value: 'restore',
+                      enabled: !_restoring,
+                      child: const Text('Bring back babies from Google Drive'),
+                    ),
+                    const PopupMenuItem(
                       value: 'disconnect',
                       child: Text('Disconnect Google Drive'),
                     ),
