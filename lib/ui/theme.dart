@@ -20,6 +20,9 @@ ThemeData buildTheme(
   final light = brightness == Brightness.light;
   return ThemeData(
     useMaterial3: true,
+    fontFamily: 'DMSans',
+    // DM Sans has no Greek or Cyrillic; fall back so those names still show.
+    fontFamilyFallback: const ['NotoSans'],
     colorScheme: scheme,
     scaffoldBackgroundColor: light
         ? const Color(0xFFFFFAF5)
@@ -48,7 +51,11 @@ ThemeData buildTheme(
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(
+          fontFamily: 'DMSans',
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(

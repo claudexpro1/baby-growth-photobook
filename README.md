@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-13: New start screen look (warm background with baby doodles, big headline, pill buttons, DM Sans font)
 - 2026-10-13: Drive consent screen before sign-in; start page explains the app and says "I already registered my baby"; profile moved to `_App data` folder (auto-migration) and same-name babies get separate folders; reminder status per baby; slideshow; Disconnect Drive and Delete all data; birth date up to ten months ahead
 - 2026-10-11: Reminders are written straight into the user's own Google Calendar (own calendar per baby, popup on each photo day, kept up to date); scope calendar.app.created
 - 2026-10-11: Dropped the separate Android/iOS app projects: the web app is the one app for every phone and laptop (the Dart code is unchanged; native projects can be regenerated with `flutter create` if ever needed)

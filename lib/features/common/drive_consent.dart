@@ -52,8 +52,8 @@ Future<bool> showDriveConsent(BuildContext context) async {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Baby Photobook helps you keep a few meaningful baby photos, '
-                      'saved privately in your own Google Drive.',
+                      'One photo now and then, saved in your own Drive, '
+                      'becomes a story you will treasure.',
                     ),
                     const SizedBox(height: 16),
                     for (final (icon, text) in driveConsentPoints)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../common/drive_consent.dart';
 import '../common/photo_image.dart';
+import 'welcome_view.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -165,31 +166,34 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final babies = ref.watch(babiesProvider);
+    final welcome = babies.hasValue && babies.value!.isEmpty;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Baby Photobook'),
-        actions: [
-          IconButton(
-            tooltip: 'Bring back my babies from Google Drive',
-            onPressed: _restoring ? null : _restore,
-            icon: const Icon(Icons.cloud_download_outlined),
-          ),
-          PopupMenuButton<String>(
-            onSelected: (v) =>
-                v == 'disconnect' ? _disconnectDrive() : _deleteAll(),
-            itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: 'disconnect',
-                child: Text('Disconnect Google Drive'),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                child: Text('Delete all data on this device'),
-              ),
-            ],
-          ),
-        ],
-      ),
+      appBar: welcome
+          ? null
+          : AppBar(
+              title: const Text('Baby Photobook'),
+              actions: [
+                IconButton(
+                  tooltip: 'Bring back my babies from Google Drive',
+                  onPressed: _restoring ? null : _restore,
+                  icon: const Icon(Icons.cloud_download_outlined),
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (v) =>
+                      v == 'disconnect' ? _disconnectDrive() : _deleteAll(),
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'disconnect',
+                      child: Text('Disconnect Google Drive'),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete all data on this device'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
       floatingActionButton: babies.hasValue && babies.value!.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _add,
@@ -202,51 +206,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         error: (e, _) =>
             const Center(child: Text('Could not load your babies.')),
         data: (list) => list.isEmpty
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.child_care,
-                        size: 72,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'A few photos, kept with care',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'One photo now and then, saved in your own Drive, '
-                        'becomes a story you will treasure.',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'You choose how often, we remind you, and every photo is '
-                        'filed by date in your own Google Drive. There is no '
-                        'account to make and no server of ours, so only you can see them.',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      FilledButton(
-                        onPressed: _add,
-                        child: const Text('Start with your baby'),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: _restoring ? null : _restore,
-                        icon: const Icon(Icons.cloud_download_outlined),
-                        label: const Text('I already registered my baby'),
-                      ),
-                    ],
-                  ),
-                ),
-              )
+            ? WelcomeView(onStart: _add, onRestore: _restore, busy: _restoring)
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
                 children: [for (final b in list) _BabyCard(b)],

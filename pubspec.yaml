@@ -76,6 +76,17 @@ flutter:
     - assets/fonts/NotoSans-Regular.ttf
     - assets/fonts/NotoSans-Bold.ttf
 
+  fonts:
+    # DM Sans (SIL Open Font License, see assets/fonts/DMSans-OFL.txt)
+    - family: DMSans
+      fonts:
+        - asset: assets/fonts/DMSans-Variable.ttf
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
