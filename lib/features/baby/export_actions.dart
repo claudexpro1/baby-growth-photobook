@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../data/photo_library.dart';
+import '../../data/photo_sync.dart';
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../export/photobook_pdf.dart';
@@ -116,7 +117,7 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
       final cloud = ref.read(cloudProvider);
       var baby = _baby;
       final babyFolder = await cloud.ensureBabyFolder(
-        baby.name,
+        driveFolderNameFor(baby, ref.read(babiesProvider).value ?? const []),
         existingId: baby.driveFolderId,
       );
       final shared = await cloud.ensureSharedFolder(

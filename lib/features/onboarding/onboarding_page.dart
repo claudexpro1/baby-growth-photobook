@@ -6,7 +6,17 @@ import '../../domain/baby.dart';
 import '../../domain/schedule.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
+import '../common/drive_consent.dart';
 import '../common/schedule_editor.dart';
+
+/// Earliest birth date offered: 25 years back covers parents adding an older
+/// child's early photos; the schedule does not care about the exact year.
+DateTime birthDateFirst(DateTime now) => DateTime(now.year - 25, 1, 1);
+
+/// Latest birth date offered: an expected due date up to ten months ahead, so
+/// parents can set up before the birth.
+DateTime birthDateLast(DateTime now) =>
+    DateTime(now.year, now.month + 10, now.day);
 
 /// Four friendly steps: about the baby, where photos live, how often, reminders.
 class OnboardingPage extends ConsumerStatefulWidget {
@@ -105,6 +115,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   Future<void> _chooseDrive() async {
+    if (!await ref.read(cloudProvider).isSignedIn() &&
+        !(mounted && await showDriveConsent(context))) {
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _connecting = true;
       _error = null;
@@ -248,8 +263,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           final d = await showDatePicker(
             context: context,
             initialDate: _birthDate,
-            firstDate: DateTime(2000),
-            lastDate: DateTime.now().add(const Duration(days: 60)),
+            firstDate: birthDateFirst(DateTime.now()),
+            lastDate: birthDateLast(DateTime.now()),
           );
           if (d != null) setState(() => _birthDate = d);
         },

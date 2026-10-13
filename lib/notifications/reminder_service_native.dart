@@ -62,6 +62,43 @@ class ReminderService {
         false;
   }
 
+  /// Whether the phone currently lets this app show notifications.
+  Future<bool> notificationsAllowed() async {
+    await _init();
+    if (Platform.isIOS) {
+      final o = await _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >()
+          ?.checkPermissions();
+      return o?.isEnabled ?? false;
+    }
+    return await _plugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.areNotificationsEnabled() ??
+        false;
+  }
+
+  /// Shows a notification right now, so the parent can see reminders work.
+  Future<void> sendTest(String babyName) async {
+    await _init();
+    await _plugin.show(
+      id: 0,
+      title: "Time for $babyName's photo",
+      body: 'This is a test reminder.',
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'photo_reminders',
+          'Photo reminders',
+          channelDescription: 'Reminds you to take the next baby photo',
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+
   /// Replaces all scheduled reminders with a fresh rolling window for [babies].
   /// [photoDatesFor] says which days already have a photo (no reminder needed).
   Future<void> rescheduleAll(

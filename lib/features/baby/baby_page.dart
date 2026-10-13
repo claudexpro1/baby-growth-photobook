@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../common/drive_consent.dart';
 import '../common/photo_image.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,7 @@ import 'capture.dart';
 import 'edit_baby_page.dart';
 import 'export_actions.dart';
 import 'photo_viewer.dart';
+import 'slideshow.dart';
 
 /// A baby's story: today's photo, where the photos are, and the timeline.
 class BabyPage extends ConsumerStatefulWidget {
@@ -90,6 +92,10 @@ class _BabyPageState extends ConsumerState<BabyPage> {
   }
 
   Future<void> _connectDrive(Baby baby) async {
+    if (!await ref.read(cloudProvider).isSignedIn() &&
+        !(mounted && await showDriveConsent(context))) {
+      return;
+    }
     try {
       final cloud = ref.read(cloudProvider);
       if (!await cloud.isSignedIn()) await cloud.signIn();
@@ -137,6 +143,12 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                 PopupMenuButton<String>(
                   onSelected: (v) {
                     switch (v) {
+                      case 'slideshow':
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => SlideshowPage(babyId: baby.id),
+                          ),
+                        );
                       case 'pdf':
                         sharePhotobookPdf(context, ref, baby, photos);
                       case 'link':
@@ -156,6 +168,11 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                     }
                   },
                   itemBuilder: (_) => [
+                    if (photos.length > 1)
+                      const PopupMenuItem(
+                        value: 'slideshow',
+                        child: Text('Play slideshow'),
+                      ),
                     const PopupMenuItem(
                       value: 'pdf',
                       child: Text('Share photobook (PDF)'),

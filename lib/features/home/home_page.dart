@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../common/drive_consent.dart';
 import '../common/photo_image.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/providers.dart';
 import '../../domain/age_label.dart';
@@ -32,6 +34,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   bool _restoring = false;
 
   Future<void> _restore() async {
+    if (!await ref.read(cloudProvider).isSignedIn() &&
+        !(mounted && await showDriveConsent(context))) {
+      return;
+    }
+    if (!mounted) return;
     setState(() => _restoring = true);
     String message;
     try {
@@ -50,6 +57,107 @@ class _HomePageState extends ConsumerState<HomePage> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _disconnectDrive() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Disconnect Google Drive?'),
+        content: const Text(
+          'The app signs out of Google Drive on this device and stops uploading. '
+          'Your photos stay in your Drive and on this device.\n\n'
+          'To take the access away completely, also remove Baby Photobook at '
+          'myaccount.google.com/permissions.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Disconnect'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    String message;
+    try {
+      await ref.read(cloudProvider).signOut();
+      message = 'Google Drive is disconnected on this device.';
+    } catch (_) {
+      message = 'Could not disconnect. Please try again.';
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+    await launchUrl(
+      Uri.parse('https://myaccount.google.com/permissions'),
+      mode: LaunchMode.externalApplication,
+    ).catchError((_) => false);
+  }
+
+  Future<void> _deleteAll() async {
+    final babies = ref.read(babiesProvider).value ?? [];
+    final waiting = <String>[];
+    for (final b in babies.where((b) => b.storage == StorageMode.googleDrive)) {
+      final n = (ref.read(photosProvider(b.id)).value ?? [])
+          .where((p) => !p.synced)
+          .length;
+      if (n > 0) waiting.add('${b.name} ($n)');
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Delete everything on this device?'),
+        content: Text(
+          'This removes all babies, their reminders and the photos kept on this '
+          'device, switches off any share links and signs out of Google Drive.\n\n'
+          'Photos already in your Google Drive are NOT deleted: delete the '
+          '"BabyPhotobook" folder in Drive yourself if you want those gone.'
+          '${waiting.isEmpty ? '' : '\n\nNot uploaded yet, so these would be lost: ${waiting.join(', ')}. Cancel and sync first.'}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(c).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Delete all'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      for (final b in List<Baby>.of(babies)) {
+        await ref.read(babiesProvider.notifier).remove(b);
+      }
+      await ref.read(cloudProvider).signOut().catchError((_) {});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Everything on this device is deleted.'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not switch off a share link, so nothing more was deleted. Check your connection and try again.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   void _add() =>
       Navigator.of(context)
           .push(MaterialPageRoute(builder: (_) => const OnboardingPage()));
@@ -62,9 +170,23 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: const Text('Baby Photobook'),
         actions: [
           IconButton(
-            tooltip: 'Restore from Google Drive',
+            tooltip: 'Bring back my babies from Google Drive',
             onPressed: _restoring ? null : _restore,
             icon: const Icon(Icons.cloud_download_outlined),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (v) =>
+                v == 'disconnect' ? _disconnectDrive() : _deleteAll(),
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'disconnect',
+                child: Text('Disconnect Google Drive'),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Text('Delete all data on this device'),
+              ),
+            ],
           ),
         ],
       ),
@@ -103,6 +225,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                         'becomes a story you will treasure.',
                         textAlign: TextAlign.center,
                       ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'You choose how often, we remind you, and every photo is '
+                        'filed by date in your own Google Drive. There is no '
+                        'account to make and no server of ours, so only you can see them.',
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: 24),
                       FilledButton(
                         onPressed: _add,
@@ -112,9 +241,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       TextButton.icon(
                         onPressed: _restoring ? null : _restore,
                         icon: const Icon(Icons.cloud_download_outlined),
-                        label: const Text(
-                          'I already have photos in Google Drive',
-                        ),
+                        label: const Text('I already registered my baby'),
                       ),
                     ],
                   ),

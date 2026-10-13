@@ -17,6 +17,12 @@ class ReminderService {
   /// permission to ask for.
   Future<bool> requestPermission() async => true;
 
+  /// Browsers cannot schedule notifications without a server.
+  Future<bool> notificationsAllowed() async => false;
+
+  /// No scheduled notifications in the browser, so nothing to test.
+  Future<void> sendTest(String babyName) async {}
+
   Future<void> rescheduleAll(
     List<Baby> babies,
     Future<Set<DateTime>> Function(Baby) photoDatesFor,

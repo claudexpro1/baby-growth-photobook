@@ -241,9 +241,10 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
       }
       final lib = await _lib;
       final sync = PhotoSync(cloud);
+      final all = ref.read(babiesProvider).value ?? <Baby>[];
       final r = restore
-          ? await sync.restore(baby, lib)
-          : await sync.upload(baby, lib);
+          ? await sync.restore(baby, lib, allBabies: all)
+          : await sync.upload(baby, lib, allBabies: all);
       if (r.baby.driveFolderId != baby.driveFolderId) {
         // Re-read the current profile so edits made during the sync are kept.
         final current = _baby;

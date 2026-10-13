@@ -29,7 +29,26 @@ bool _same(Uint8List a, Uint8List b) {
   return true;
 }
 
-const profileFileName = 'profile.json';
+/// Old location: inside the baby's photo folder. Read for migration only.
+const legacyProfileFileName = 'profile.json';
+
+/// New location: `BabyPhotobook/_App data/profile_<babyId>.json`.
+String profileFileName(Baby baby) => 'profile_${baby.id}.json';
+
+/// The Drive folder name for a baby: the name, plus the birth date when
+/// another baby has the same name, so two babies never share one folder.
+String driveFolderNameFor(Baby baby, Iterable<Baby> all) {
+  final clash = all.any(
+    (o) =>
+        o.id != baby.id &&
+        o.name.trim().toLowerCase() == baby.name.trim().toLowerCase(),
+  );
+  if (!clash) return baby.name;
+  final b = baby.birth;
+  final d =
+      '${b.year}-${b.month.toString().padLeft(2, '0')}-${b.day.toString().padLeft(2, '0')}';
+  return '${baby.name} ($d)';
+}
 
 Uint8List _profileBytes(Baby baby) =>
     Uint8List.fromList(utf8.encode(jsonEncode(baby.toJson())));
@@ -41,18 +60,30 @@ class PhotoSync {
 
   /// Uploads every photo that is not yet in the cloud. Safe to call often;
   /// failures (for example no connection) leave the photo queued for next time.
-  Future<SyncResult> upload(Baby baby, PhotoLibrary library) async {
+  Future<SyncResult> upload(
+    Baby baby,
+    PhotoLibrary library, {
+    Iterable<Baby> allBabies = const [],
+  }) async {
     final folderId = await cloud.ensureBabyFolder(
-      baby.name,
+      driveFolderNameFor(baby, allBabies),
       existingId: baby.driveFolderId,
     );
     final updated = baby.driveFolderId == folderId
         ? baby
         : baby.copyWith(driveFolderId: folderId);
     var ok = 0, failed = 0;
-    // The profile travels with the photos, so a new phone can restore everything.
+    // The profile is saved in the app-data folder (not among the photos), so a
+    // new phone can restore everything.
     try {
-      await cloud.upload(folderId, profileFileName, _profileBytes(updated));
+      final dataId = await cloud.ensureAppDataFolder();
+      await cloud.upload(
+        dataId,
+        profileFileName(updated),
+        _profileBytes(updated),
+      );
+      // Migrate: only after the new copy is safe, bin the old one.
+      await cloud.deleteByName(folderId, legacyProfileFileName);
     } catch (_) {
       // Not fatal: the next sync saves it again.
     }
@@ -78,9 +109,13 @@ class PhotoSync {
   }
 
   /// Rebuilds the phone cache from the cloud folder (new phone, reinstall).
-  Future<SyncResult> restore(Baby baby, PhotoLibrary library) async {
+  Future<SyncResult> restore(
+    Baby baby,
+    PhotoLibrary library, {
+    Iterable<Baby> allBabies = const [],
+  }) async {
     final folderId = await cloud.ensureBabyFolder(
-      baby.name,
+      driveFolderNameFor(baby, allBabies),
       existingId: baby.driveFolderId,
     );
     final have = (await library.list()).map((p) => p.name.fileName).toSet();
@@ -101,25 +136,44 @@ class PhotoSync {
     return SyncResult(updated, downloaded: n, failed: failed);
   }
 
-  /// Babies saved in the user's cloud folders (new phone, reinstall). Folders
-  /// without a readable `profile.json` are skipped.
+  /// Babies saved in the user's cloud (new phone, reinstall): the profiles in
+  /// the app-data folder, plus old-style `profile.json` files left inside baby
+  /// folders. Unreadable profiles are skipped.
   Future<List<Baby>> findProfiles() async {
     final out = <Baby>[];
+    final seen = <String>{};
+    Baby? parse(Uint8List bytes, {String? folderId}) {
+      final json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+      final b = Baby.fromJson(json);
+      return b.copyWith(
+        storage: StorageMode.googleDrive,
+        driveFolderId: folderId ?? b.driveFolderId,
+      );
+    }
+
+    try {
+      for (final f in await cloud.listAppData()) {
+        if (!f.name.startsWith('profile_') || !f.name.endsWith('.json')) {
+          continue;
+        }
+        try {
+          final b = parse(await cloud.download(f.id));
+          if (b != null && seen.add(b.id)) out.add(b);
+        } catch (_) {
+          continue;
+        }
+      }
+    } catch (_) {
+      // fall through to the old layout
+    }
     for (final folder in await cloud.listBabyFolders()) {
       try {
         final file = (await cloud.list(folder.id))
-            .where((f) => f.name == profileFileName)
+            .where((f) => f.name == legacyProfileFileName)
             .firstOrNull;
         if (file == null) continue;
-        final json = jsonDecode(
-          utf8.decode(await cloud.download(file.id)),
-        ) as Map<String, dynamic>;
-        out.add(
-          Baby.fromJson(json).copyWith(
-            storage: StorageMode.googleDrive,
-            driveFolderId: folder.id,
-          ),
-        );
+        final b = parse(await cloud.download(file.id), folderId: folder.id);
+        if (b != null && seen.add(b.id)) out.add(b);
       } catch (_) {
         continue;
       }

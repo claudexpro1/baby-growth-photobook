@@ -10,7 +10,11 @@ import 'package:baby_growth_photobook/domain/schedule.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakeCloud implements CloudStorage {
-  final files = <String, Uint8List>{}; // name -> bytes (single folder)
+  final files = <String, Uint8List>{}; // name -> bytes (the baby folder)
+  final appData = <String, Uint8List>{}; // name -> bytes (_App data folder)
+  final folderNames = <String>[]; // names passed to ensureBabyFolder
+  Map<String, Uint8List> _in(String folderId) =>
+      folderId == 'appdata' ? appData : files;
   bool offline = false;
   bool failUploads = false;
   void Function()? onUpload; // runs while an upload is in flight
@@ -32,10 +36,17 @@ class FakeCloud implements CloudStorage {
   Future<String> ensureBabyFolder(String babyName, {String? existingId}) async {
     _check();
     if (existingId != null) return existingId;
+    folderNames.add(babyName);
     created++;
     return 'folder-1';
   }
 
+  @override
+  Future<String> ensureAppDataFolder() async => 'appdata';
+  @override
+  Future<List<RemoteFile>> listAppData() async => [
+    for (final n in appData.keys) RemoteFile(n, n),
+  ];
   @override
   Future<String> ensureSharedFolder(
     String babyFolderId, {
@@ -50,20 +61,21 @@ class FakeCloud implements CloudStorage {
     final isPhoto = name.endsWith('.jpg');
     if (isPhoto) onUpload?.call();
     if (isPhoto && failUploads) throw const SocketException('upload failed');
-    files[name] = bytes;
+    _in(folderId)[name] = bytes;
   }
 
   @override
   Future<List<RemoteFile>> list(String folderId) async {
     _check();
-    return [for (final n in files.keys) RemoteFile(n, n)];
+    return [for (final n in _in(folderId).keys) RemoteFile(n, n)];
   }
 
   @override
-  Future<Uint8List> download(String fileId) async => files[fileId]!;
+  Future<Uint8List> download(String fileId) async =>
+      files[fileId] ?? appData[fileId]!;
   @override
   Future<void> deleteByName(String folderId, String name) async =>
-      files.remove(name);
+      _in(folderId).remove(name);
   @override
   Future<String> shareFolderLink(String folderId) async =>
       'https://example/$folderId';
@@ -112,7 +124,8 @@ void main() {
     final r = await PhotoSync(cloud).upload(baby, lib);
     expect(r.uploaded, 1);
     expect(r.baby.driveFolderId, 'folder-1');
-    expect(cloud.files.keys.toSet(), {'00001_2026-10-10.jpg', 'profile.json'});
+    expect(cloud.files.keys.toSet(), {'00001_2026-10-10.jpg'});
+    expect(cloud.appData.keys.toSet(), {'profile_b.json'});
     final again = await PhotoSync(cloud).upload(r.baby, lib);
     expect(again.uploaded, 0);
     expect((await lib.list()).single.synced, isTrue);
@@ -126,7 +139,7 @@ void main() {
     expect((await lib.list()).single.synced, isFalse);
     b = (await PhotoSync(cloud).upload(b, lib)).baby;
     expect(cloud.files['00001_2026-10-10.jpg'], bytes(9));
-    expect(cloud.files.length, 2); // photo + profile.json
+    expect(cloud.files.length, 1); // only the photo; profile is in _App data
   });
 
   test('a failed upload keeps the photo queued, never loses it', () async {
@@ -199,7 +212,8 @@ void main() {
       final cloud = FakeCloud();
       await lib.add(bytes(1), DateTime(2026, 10, 10));
       await PhotoSync(cloud).upload(baby, lib);
-      expect(cloud.files.containsKey('profile.json'), isTrue);
+      expect(cloud.appData.containsKey('profile_b.json'), isTrue);
+      expect(cloud.files.containsKey('profile.json'), isFalse);
 
       // a new phone: nothing local, same cloud
       final found = await PhotoSync(cloud).findProfiles();
@@ -221,6 +235,45 @@ void main() {
     final cloud = FakeCloud();
     cloud.files['00001_2026-10-10.jpg'] = bytes(1);
     cloud.files['profile.json'] = Uint8List.fromList([1, 2, 3]);
+    cloud.appData['profile_x.json'] = Uint8List.fromList([4, 5]);
     expect(await PhotoSync(cloud).findProfiles(), isEmpty);
+  });
+
+  test('an old profile.json is read, then moved on the next sync', () async {
+    final newCloud = FakeCloud();
+    await PhotoSync(newCloud).upload(baby, lib);
+    final json = newCloud.appData['profile_b.json']!;
+    final cloud = FakeCloud()
+      ..files['profile.json'] = json
+      ..files['00001_2026-10-10.jpg'] = bytes(1);
+    final found = await PhotoSync(cloud).findProfiles();
+    expect(found.single.id, 'b');
+    expect(found.single.driveFolderId, 'folder-1');
+
+    await lib.add(bytes(1), DateTime(2026, 10, 10));
+    await PhotoSync(cloud).upload(found.single, lib);
+    expect(cloud.appData.keys, ['profile_b.json']);
+    expect(cloud.files.containsKey('profile.json'), isFalse);
+    expect(cloud.files.containsKey('00001_2026-10-10.jpg'), isTrue);
+  });
+
+  test('same-name babies get separate folders', () async {
+    final twin = Baby(
+      id: 'b2',
+      name: 'luna ',
+      gender: Gender.girl,
+      birth: DateTime(2027, 3, 4),
+      phases: baby.phases,
+      storage: StorageMode.googleDrive,
+    );
+    final cloud = FakeCloud();
+    await PhotoSync(cloud).upload(baby, lib, allBabies: [baby, twin]);
+    await PhotoSync(cloud).upload(
+      twin,
+      PhotoLibrary(MemoryStore(), 'photos/b2'),
+      allBabies: [baby, twin],
+    );
+    expect(cloud.folderNames, ['Luna (2026-10-10)', 'luna  (2027-03-04)']);
+    expect(driveFolderNameFor(baby, [baby]), 'Luna');
   });
 }

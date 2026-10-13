@@ -15,7 +15,11 @@ Documents for review: [docs/SPEC.md](docs/SPEC.md) (product + UX), [docs/COMPLIA
 - Google Drive: connect during setup, automatic upload, retry when offline, "Open in Drive" button
 - Timeline grouped by age, full-screen viewer, share and delete
 - PDF photobook, plus an optional Drive "Shared" folder link you can stop at any time
-- Profile saved to Drive too (`profile.json` next to the photos); on a new phone, tap the cloud icon / "I already have photos in Google Drive" to restore babies and photos
+- Profile saved to Drive too (`BabyPhotobook/_App data/profile_<id>.json`, apart from the photos; old `profile.json` files are moved automatically); on a new phone, tap the cloud icon / "I already registered my baby" to restore babies and photos
+- Plain-language Drive consent screen before the Google sign-in; same-name babies get separate Drive folders
+- Reminder status in each baby's settings (calendar added or not; on a phone app: notifications on or blocked, and a test reminder)
+- Slideshow of all photos; "Disconnect Google Drive" and "Delete all data on this device" in the start page menu
+- Birth date can be set up to ten months ahead (due date)
 - Photos kept only in the app if you decline Drive (with a clear warning)
 
 ## Using it on a phone: the web app
@@ -30,7 +34,7 @@ flutter build web --release --base-href /<path>/ --dart-define=GOOGLE_WEB_CLIENT
 
 `.github/workflows/web.yml` builds and publishes it to GitHub Pages (needs a public repo or a paid plan, Pages source = GitHub Actions, repo variable `GOOGLE_WEB_CLIENT_ID`). Add the Pages address as an *Authorized JavaScript origin* on the Web OAuth client.
 
-Not yet: iCloud (iPhone), milestone/birth-story cards, slideshow. See the spec.
+Not yet: iCloud (iPhone), milestone/birth-story cards. See the spec.
 
 ## Setup (developers)
 
@@ -69,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-13: Drive consent screen before sign-in; start page explains the app and says "I already registered my baby"; profile moved to `_App data` folder (auto-migration) and same-name babies get separate folders; reminder status per baby; slideshow; Disconnect Drive and Delete all data; birth date up to ten months ahead
 - 2026-10-11: Reminders are written straight into the user's own Google Calendar (own calendar per baby, popup on each photo day, kept up to date); scope calendar.app.created
 - 2026-10-11: Dropped the separate Android/iOS app projects: the web app is the one app for every phone and laptop (the Dart code is unchanged; native projects can be regenerated with `flutter create` if ever needed)
 - 2026-10-11: Whole profile is saved to Drive (`profile.json`) and can be restored on a new phone or browser

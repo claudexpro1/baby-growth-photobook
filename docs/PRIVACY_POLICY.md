@@ -16,19 +16,23 @@ Contact: [CONTACT EMAIL]
 
 | What | Where it is kept | Do we receive it? |
 |---|---|---|
-| Baby's name, colour choice (girl / boy / neutral), birth date and time, birth place (optional) | On your phone only, in the app's private storage (a file called `babies.json`). Not uploaded to Drive. | No |
-| Your photo schedule and reminder settings | On your phone only | No |
-| Photos (named like `00001_2026-10-10.jpg`) | On your phone, and in your own Google Drive folder `BabyPhotobook/<baby name>/`. If you choose "only in the app", only on your phone | No |
-| The names of the Drive folders the app created, and a list of which photos are already uploaded | On your phone | No |
+| Baby's name, colour choice (girl / boy / neutral), birth date and time, birth place (optional), photo schedule and reminder settings | In this browser or phone (the app's own storage). If you connect Google Drive, also as a small profile file in your own Drive folder `BabyPhotobook/_App data/` so you can restore on a new device | No |
+| Photos (named like `00001_2026-10-10.jpg`) | On your device, and in your own Google Drive folder `BabyPhotobook/<baby name>/`. If you choose "only in the app", only on your device | No |
+| The names of the Drive folders the app created, and a list of which photos are already uploaded | On your device (and the folder ids inside the profile file) | No |
+| Photo reminders, if you add them to Google Calendar | In a calendar the app creates in your own Google Calendar, "Baby Photobook - <baby name>", with an event on each photo day | No |
 | A photobook PDF, if you make a share link | In a `Shared` folder in your own Drive (the PDF shows the baby's name, birth date, birth place if you entered one, and the photos with ages and dates) | No |
 
 The app does not encrypt this data itself; it relies on your phone's own protection. The app switches off Android's automatic cloud backup for its own data, so the photos and profiles on your phone are not copied to any backup unless you put them in your own Drive.
 
 ## Google Drive
 
-If you connect Google Drive, the app asks for one permission, "drive.file". It lets the app create and manage only the files and folders it creates. It cannot see your other Drive files. The other way round, photos you add to the app's folder by hand in Drive are not visible to the app. The app uploads your photos, lists and downloads the photos it created (for "Restore photos from Drive"), and deletes a photo from Drive when you delete it in the app. We never see your Google account data; the connection runs directly between your phone and Google. The app's use of information received from Google APIs follows the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements. We do not share Google data with anyone, do not use it for advertising and do not use it for anything other than the features you see in the app.
+Before the Google sign-in the app explains, in plain words, what you are agreeing to (what the app can see, when the folder is created, that nothing is sent to us, and that sharing only happens if you create a link). If you connect Google Drive, the app asks for one permission, "drive.file". It lets the app create and manage only the files and folders it creates. It cannot see your other Drive files. The other way round, photos you add to the app's folder by hand in Drive are not visible to the app. The app uploads your photos, lists and downloads the photos it created (for "Restore photos from Drive"), and deletes a photo from Drive when you delete it in the app. We never see your Google account data; the connection runs directly between your phone and Google. The app's use of information received from Google APIs follows the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements. We do not share Google data with anyone, do not use it for advertising and do not use it for anything other than the features you see in the app.
 
-The app has no "Disconnect" button yet. You can remove the app's access at any time at myaccount.google.com/permissions.
+You can tap "Disconnect Google Drive" on the start page menu at any time to sign out on this device, and remove the app's access completely at myaccount.google.com/permissions.
+
+## Google Calendar
+
+If you choose "Add reminders to Google Calendar", the app asks for the narrow permission "calendar.app.created". It lets the app create its own calendar and the events in it only; it cannot read your other calendars or events. Browsers cannot send reminders without a server, so Google Calendar sends them. Removing a baby deletes that calendar.
 
 ## iCloud
 
@@ -58,7 +62,7 @@ None. We do not use advertising or analytics tools and do not track you.
 
 ## Your choices and rights
 
-Because we hold none of your data, there is nothing for us to delete or send you. You can: delete a photo in the app (this also deletes it from your Drive folder), remove a baby in the app (this deletes the profile and the photos on your phone but not the photos in your Drive), delete the files from your own Drive yourself, remove the app's Google access at myaccount.google.com/permissions, or uninstall the app (this deletes photos kept only in the app). A single "delete all my data" button does not exist yet. If you are in the EU/UK, you have rights under data protection law; for your data in your own Google or Apple account, those companies are responsible. For questions, write to [CONTACT EMAIL].
+Because we hold none of your data, there is nothing for us to delete or send you. You can: delete a photo in the app (this also deletes it from your Drive folder), remove a baby in the app (this deletes the profile and the photos on your phone but not the photos in your Drive), delete the files from your own Drive yourself, remove the app's Google access at myaccount.google.com/permissions, or uninstall the app (this deletes photos kept only in the app). The start page menu has "Delete all data on this device", which removes every baby, reminder and photo kept on this device, switches off share links and signs out of Google Drive (it does not delete the copies in your own Drive). If you are in the EU/UK, you have rights under data protection law; for your data in your own Google or Apple account, those companies are responsible. For questions, write to [CONTACT EMAIL].
 
 ## Security
 

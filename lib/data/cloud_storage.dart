@@ -23,12 +23,20 @@ abstract class CloudStorage {
   /// Finds or creates `BabyPhotobook/<babyName>/` and returns its id.
   Future<String> ensureBabyFolder(String babyName, {String? existingId});
 
+  /// Finds or creates `BabyPhotobook/_App data/`, where the app keeps its own
+  /// files (one profile per baby) so baby folders hold only photos.
+  Future<String> ensureAppDataFolder();
+
   /// Finds or creates the `Shared` subfolder of a baby folder.
   Future<String> ensureSharedFolder(String babyFolderId, {String? existingId});
 
-  /// The baby folders inside `BabyPhotobook` (empty if there is none yet).
-  /// Never creates anything.
+  /// The baby folders inside `BabyPhotobook` (empty if there is none yet),
+  /// without `Shared` and `_App data`. Never creates anything.
   Future<List<RemoteFile>> listBabyFolders();
+
+  /// The files in `BabyPhotobook/_App data/` (empty if there is none yet).
+  /// Never creates anything.
+  Future<List<RemoteFile>> listAppData();
 
   Future<void> upload(String folderId, String name, Uint8List bytes);
 

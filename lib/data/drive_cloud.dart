@@ -16,6 +16,7 @@ class DriveCloud implements CloudStorage {
   static final DriveCloud instance = DriveCloud._();
 
   static const rootFolderName = 'BabyPhotobook';
+  static const appDataFolderName = '_App data';
   static const _scopes = [drive.DriveApi.driveFileScope];
   static const _folderMime = 'application/vnd.google-apps.folder';
 
@@ -98,6 +99,22 @@ class DriveCloud implements CloudStorage {
   }
 
   @override
+  Future<String> ensureAppDataFolder() async {
+    final api = await _api();
+    final root = await _ensure(api, rootFolderName, 'root');
+    return _ensure(api, appDataFolderName, root);
+  }
+
+  @override
+  Future<List<RemoteFile>> listAppData() async {
+    final api = await _api();
+    final root = await _find(api, rootFolderName, 'root');
+    if (root == null) return [];
+    final data = await _find(api, appDataFolderName, root);
+    return data == null ? [] : list(data);
+  }
+
+  @override
   Future<String> ensureSharedFolder(
     String babyFolderId, {
     String? existingId,
@@ -122,7 +139,9 @@ class DriveCloud implements CloudStorage {
         pageToken: token,
       );
       for (final f in r.files ?? <drive.File>[]) {
-        if (f.name != 'Shared') out.add(RemoteFile(f.id!, f.name!));
+        if (f.name != 'Shared' && f.name != appDataFolderName) {
+          out.add(RemoteFile(f.id!, f.name!));
+        }
       }
       token = r.nextPageToken;
     } while (token != null);

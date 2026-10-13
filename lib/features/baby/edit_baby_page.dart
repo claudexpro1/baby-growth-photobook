@@ -5,6 +5,7 @@ import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
+import '../common/reminder_status.dart';
 import '../common/schedule_editor.dart';
 
 /// Settings for one baby: name, schedule, reminders, delete.
@@ -193,6 +194,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
               value: _reminder,
               onChanged: (r) => setState(() => _reminder = r),
             ),
+            ReminderStatus(babyId: widget.babyId, enabled: _reminder.enabled),
             if (_error != null)
               Text(
                 _error!,
