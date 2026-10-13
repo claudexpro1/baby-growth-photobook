@@ -190,6 +190,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
             const SizedBox(height: 8),
             ScheduleEditor(
               phases: _phases,
+              birth: _baby.birth,
               finish: _finish,
               onChanged: () => setState(() => _error = null),
             ),

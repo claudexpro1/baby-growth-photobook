@@ -121,10 +121,18 @@ class ScheduleEditor extends StatefulWidget {
   const ScheduleEditor({
     super.key,
     required this.phases,
+    required this.birth,
     this.finish,
     this.onChanged,
+    this.today,
   });
   final List<PhaseDraft> phases;
+
+  /// The baby's birth, which the real dates are counted from.
+  final DateTime birth;
+
+  /// Overridable "today" for tests.
+  final DateTime? today;
 
   /// The finish line; when null the editor has no finish-line section.
   final FinishDraft? finish;
@@ -144,29 +152,173 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
 
   String _plural(int v, TimeUnit u) => '${u.name}${v == 1 ? '' : 's'}';
 
-  String _summary() {
-    final parts = <String>[];
-    for (var i = 0; i < _p.length; i++) {
-      final p = _p[i];
-      final from = i == 0
-          ? 'From birth'
-          : 'From ${p.startValue} ${_plural(p.startValue, p.startUnit)}';
-      final every = p.every == 1
-          ? switch (p.unit) {
-              TimeUnit.day => 'every day',
-              TimeUnit.week => 'every week',
-              TimeUnit.month => 'every month',
-            }
-          : 'every ${p.every} ${_plural(p.every, p.unit)}';
-      parts.add('$from: $every');
+  DateTime get _birthDay =>
+      DateTime.utc(widget.birth.year, widget.birth.month, widget.birth.day);
+
+  DateTime get _today {
+    final t = widget.today ?? DateTime.now();
+    return DateTime.utc(t.year, t.month, t.day);
+  }
+
+  /// The schedule as currently edited, or null while it is not valid.
+  PhotoSchedule? _schedule() {
+    try {
+      return PhotoSchedule(
+        widget.birth,
+        _p.map((d) => d.toPhase()).toList(),
+        end: widget.finish?.toAge(),
+      );
+    } on ArgumentError {
+      return null;
     }
-    final f = widget.finish;
-    if (f != null && f.enabled) {
+  }
+
+  String _date(DateTime d, {bool year = false}) {
+    final loc = MaterialLocalizations.of(context);
+    return year
+        ? '${loc.formatMediumDate(d)}, ${d.year}'
+        : loc.formatMediumDate(d);
+  }
+
+  String _every(PhaseDraft p) => p.every == 1
+      ? switch (p.unit) {
+          TimeUnit.day => 'every day',
+          TimeUnit.week => 'every week',
+          TimeUnit.month => 'every month',
+        }
+      : 'every ${p.every} ${_plural(p.every, p.unit)}';
+
+  /// "From Wed, Oct 14 · every week · until Oct 20" for step [i].
+  String? _stepLine(int i, PhotoSchedule? sched) {
+    if (sched == null) return null;
+    final start = _p[i].toPhase().start.from(_birthDay);
+    final parts = <String>['From ${_date(start)}', _every(_p[i])];
+    final DateTime? stop = i + 1 < _p.length
+        ? _p[i + 1]
+              .toPhase()
+              .start
+              .from(_birthDay)
+              .subtract(const Duration(days: 1))
+        : sched.endDate;
+    if (stop != null) {
       parts.add(
-        'Finish line at ${ageSpanLabel(f.toAge()!.value, f.toAge()!.unit)}: a last photo, then done',
+        i + 1 < _p.length ? 'until ${_date(stop)}' : 'until the finish line',
+      );
+    } else {
+      parts.add('and so on');
+    }
+    return parts.join(' · ');
+  }
+
+  /// A quiet note when a step is so short it gives very few photos.
+  String? _stepWarning(int i, PhotoSchedule? sched) {
+    if (sched == null) return null;
+    final start = _p[i].toPhase().start.from(_birthDay);
+    final DateTime? stop = i + 1 < _p.length
+        ? _p[i + 1]
+              .toPhase()
+              .start
+              .from(_birthDay)
+              .subtract(const Duration(days: 1))
+        : sched.endDate;
+    if (stop == null) return null;
+    final n = sched.dueDates(start, stop).where((d) {
+      return !d.isBefore(start);
+    }).length;
+    return n < 2 ? 'This step gives only $n photo${n == 1 ? '' : 's'}.' : null;
+  }
+
+  Widget _photoDaysCard(BuildContext context) {
+    final sched = _schedule();
+    final scheme = Theme.of(context).colorScheme;
+    if (sched == null) {
+      return Card(
+        color: scheme.errorContainer.withValues(alpha: 0.4),
+        child: const Padding(
+          padding: EdgeInsets.all(14),
+          child: Text(
+            'The steps do not fit together yet: each step has to start later than the one before it.',
+          ),
+        ),
       );
     }
-    return parts.join('\n');
+    final fromBirth = !_today.isAfter(_birthDay);
+    final from = fromBirth ? _birthDay : _today;
+    final next = <DateTime>[];
+    var window = 60;
+    while (next.length < 6 && window < 4000) {
+      next
+        ..clear()
+        ..addAll(sched.dueDates(from, from.add(Duration(days: window))));
+      if (next.length >= 6) break;
+      if (sched.endDate != null &&
+          from.add(Duration(days: window)).isAfter(sched.endDate!)) {
+        break;
+      }
+      window *= 2;
+    }
+    final shown = next.take(6).toList();
+    final last = _p.last;
+    final finish = widget.finish;
+    final lines = <Widget>[];
+    if (finish != null && finish.enabled && sched.endDate != null) {
+      final end = sched.endDate!;
+      final rhythm = PhotoSchedule(
+        widget.birth,
+        _p.map((d) => d.toPhase()).toList(),
+      );
+      final inRhythm = rhythm.dueDates(end, end).isNotEmpty;
+      final before = sched.dueDates(
+        _birthDay,
+        end.subtract(const Duration(days: 1)),
+      );
+      lines.add(
+        Text(
+          'Finish line: ${_date(end, year: true)} '
+          '(${ageSpanLabel(finish.toAge()!.value, finish.toAge()!.unit)}). '
+          '${inRhythm || before.isEmpty ? 'The last photo is on the finish day.' : 'Last regular photo ${_date(before.last)}, then one final photo on the finish day.'}',
+        ),
+      );
+      if (end.difference(_birthDay).inDays < 30) {
+        lines.add(
+          const Text(
+            'That finish line is under a month away, so the series is very short.',
+          ),
+        );
+      }
+    } else {
+      lines.add(Text('…and so on, ${_every(last)}.'));
+    }
+    return Card(
+      color: scheme.primaryContainer.withValues(alpha: 0.4),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              fromBirth ? 'Your first photo days' : 'Your next photo days',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final d in shown)
+                  Chip(
+                    label: Text(_date(d)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final l in lines)
+              Padding(padding: const EdgeInsets.only(top: 4), child: l),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -223,14 +375,7 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
           }),
         ),
         if (widget.finish != null) _finishCard(widget.finish!),
-        Card(
-          color: Theme.of(context).colorScheme.primaryContainer
-              .withValues(alpha: 0.4),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Text('In short:\n${_summary()}'),
-          ),
-        ),
+        _photoDaysCard(context),
       ],
     );
   }
@@ -289,6 +434,10 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
 
   Widget _card(int i) {
     final p = _p[i];
+    final sched = _schedule();
+    final line = _stepLine(i, sched);
+    final warn = _stepWarning(i, sched);
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -310,7 +459,7 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
                   ),
               ],
             ),
-            if (i > 0)
+            if (i > 0) ...[
               _row(
                 'Starts at age',
                 p.startValue,
@@ -321,6 +470,12 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
                   p.startUnit = u;
                 }),
               ),
+              Text(
+                'Birth day is age 0, so age ${ageSpanLabel(p.startValue, p.startUnit)} is '
+                '${_date(p.toPhase().start.from(_birthDay))}.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             _row(
               'A photo every',
               p.every,
@@ -331,6 +486,22 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
                 p.unit = u;
               }),
             ),
+            if (line != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  line,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            if (warn != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(warn, style: Theme.of(context).textTheme.bodySmall),
+              ),
           ],
         ),
       ),

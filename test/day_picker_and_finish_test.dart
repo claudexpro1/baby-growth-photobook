@@ -71,6 +71,7 @@ void main() {
           body: SingleChildScrollView(
             child: ScheduleEditor(
               phases: [PhaseDraft(0, TimeUnit.day, 1, TimeUnit.week)],
+              birth: DateTime(2026, 10, 12),
               finish: finish,
             ),
           ),
@@ -105,7 +106,7 @@ void main() {
     ); // the finish-line row is the last one
     await tester.pump();
     expect(finish.toAge(), const Age(3, TimeUnit.month));
-    expect(find.textContaining('Finish line at 3 months'), findsOneWidget);
+    expect(find.textContaining('(3 months)'), findsOneWidget);
   });
 
   test('validation: the finish line has to be after the last step', () {

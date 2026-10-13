@@ -72,7 +72,7 @@ void main() {
     expect(find.text('How often?'), findsOneWidget);
     await tester.tap(find.text('Daily, then weekly, then monthly'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('From birth: every day'), findsOneWidget);
+    expect(find.textContaining('every day'), findsOneWidget);
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
     expect(find.text('Reminders'), findsOneWidget);

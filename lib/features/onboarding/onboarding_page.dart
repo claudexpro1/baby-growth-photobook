@@ -365,6 +365,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   Widget _scheduleStep() => ScheduleEditor(
     phases: _phases,
+    birth: _birth,
     finish: _finish,
     onChanged: () => setState(() => _error = null),
   );
