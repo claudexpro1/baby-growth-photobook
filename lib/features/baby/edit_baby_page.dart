@@ -21,6 +21,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   late Baby _baby;
   late final TextEditingController _name;
   late List<PhaseDraft> _phases;
+  late FinishDraft _finish;
   late ReminderSettings _reminder;
   late Gender _gender;
   String? _error;
@@ -34,6 +35,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
         .firstWhere((b) => b.id == widget.babyId);
     _name = TextEditingController(text: _baby.name);
     _phases = _baby.phases.map(PhaseDraft.from).toList();
+    _finish = FinishDraft.from(_baby.end);
     _reminder = _baby.reminder;
     _gender = _baby.gender;
   }
@@ -52,7 +54,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   Future<void> _save() async {
     final err = _name.text.trim().isEmpty
         ? "Please enter your baby's name."
-        : validatePhases(_baby.birth, _phases);
+        : validatePhases(_baby.birth, _phases, finish: _finish);
     setState(() => _error = err);
     if (err != null) return;
     if (_reminder.enabled && !_baby.reminder.enabled) {
@@ -76,6 +78,8 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
             name: _name.text.trim(),
             gender: _gender,
             phases: _phases.map((p) => p.toPhase()).toList(),
+            end: _finish.toAge(),
+            clearEnd: !_finish.enabled,
             reminder: _reminder,
           ),
         );
@@ -156,7 +160,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: buildTheme(_gender),
+      data: themeFor(context, _gender),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Settings'),
@@ -186,6 +190,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
             const SizedBox(height: 8),
             ScheduleEditor(
               phases: _phases,
+              finish: _finish,
               onChanged: () => setState(() => _error = null),
             ),
             const SizedBox(height: 16),

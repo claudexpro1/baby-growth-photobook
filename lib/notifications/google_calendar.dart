@@ -1,3 +1,4 @@
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/calendar/v3.dart' as cal;
 
 import '../data/google_auth.dart';
@@ -166,4 +167,43 @@ class CalendarNotConnected implements Exception {
   const CalendarNotConnected();
   @override
   String toString() => 'Google Calendar is not connected';
+}
+
+/// Says what went wrong with Google Calendar, in words a parent (or the app's
+/// owner) can act on. "Allow access" is only said when that is really the
+/// problem.
+String calendarErrorMessage(Object e) {
+  if (e is CalendarNotConnected) {
+    return 'Google Calendar is not allowed yet. Tap again and allow Calendar access.';
+  }
+  if (e is GoogleSignInException) {
+    return switch (e.code) {
+      GoogleSignInExceptionCode.canceled => "The Google window was closed before you allowed Calendar access. Tap again and choose Allow.",
+      GoogleSignInExceptionCode.clientConfigurationError ||
+      GoogleSignInExceptionCode.providerConfigurationError =>
+        'Google sign-in is not set up correctly for this app '
+            '(${e.description ?? e.code.name}). The app owner needs to check the Google Cloud setup.',
+      _ => 'Google sign-in did not finish (${e.code.name}). Please try again.',
+    };
+  }
+  if (e is cal.DetailedApiRequestError) {
+    final text = '${e.message} ${e.errors.map((x) => x.reason).join(' ')}';
+    final off =
+        text.contains('accessNotConfigured') ||
+        text.contains('has not been used') ||
+        text.contains('is disabled');
+    if (e.status == 403 && off) {
+      return 'The Google Calendar API is not switched on for this app in Google Cloud. '
+          'The app owner needs to enable it (Google Cloud > APIs & Services > Google Calendar API).';
+    }
+    if (e.status == 403) {
+      return 'Google did not give this app Calendar access (error 403: ${e.message ?? 'forbidden'}). '
+          'Tap again and tick the Calendar box when Google asks.';
+    }
+    if (e.status == 401) {
+      return 'Your Google sign-in has expired. Tap again and allow Calendar access.';
+    }
+    return 'Google Calendar answered with an error (${e.status}: ${e.message ?? 'unknown'}).';
+  }
+  return 'Could not reach Google Calendar (${e.runtimeType}). Check your connection and try again.';
 }

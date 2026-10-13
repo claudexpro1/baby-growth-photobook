@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
+import '../common/photo_day_picker.dart';
 
 DateTime _day(DateTime d) => DateTime.utc(d.year, d.month, d.day);
 
@@ -43,12 +44,16 @@ Future<void> capturePhoto(
     final last = now.isBefore(first) ? first : now;
     var initial = taken.isBefore(first) ? last : taken;
     if (initial.isAfter(last)) initial = last;
-    final picked = await showDatePicker(
-      context: context,
-      helpText: 'Which day is this photo for?',
-      initialDate: initial,
-      firstDate: first,
-      lastDate: last,
+    final photoDays = (ref.read(photosProvider(baby.id)).value ?? [])
+        .map((p) => p.date)
+        .toSet();
+    final picked = await showPhotoDayPicker(
+      context,
+      first: first,
+      last: last,
+      initial: initial,
+      photoDays: photoDays,
+      dueDays: baby.schedule.dueDates(first, last).toSet(),
     );
     if (picked == null) return;
     date = picked;

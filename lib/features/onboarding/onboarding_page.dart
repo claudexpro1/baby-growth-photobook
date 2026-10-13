@@ -40,6 +40,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final List<PhaseDraft> _phases = [
     PhaseDraft(0, TimeUnit.day, 1, TimeUnit.week),
   ];
+  final _finish = FinishDraft();
   String? _error;
 
   @override
@@ -68,7 +69,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ? 'Please choose where to keep the photos.'
             : null;
       case 2:
-        return validatePhases(_birth, _phases);
+        return validatePhases(_birth, _phases, finish: _finish);
     }
     return null;
   }
@@ -107,6 +108,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             birth: _birth,
             birthPlace: _place.text.trim(),
             phases: _phases.map((p) => p.toPhase()).toList(),
+            end: _finish.toAge(),
             reminder: _reminder,
             storage: _storage!,
           ),
@@ -173,7 +175,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       'Reminders',
     ];
     return Theme(
-      data: buildTheme(_gender),
+      data: themeFor(context, _gender),
       child: Scaffold(
         appBar: AppBar(title: Text(titles[_step])),
         body: SafeArea(
@@ -363,6 +365,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   Widget _scheduleStep() => ScheduleEditor(
     phases: _phases,
+    finish: _finish,
     onChanged: () => setState(() => _error = null),
   );
 

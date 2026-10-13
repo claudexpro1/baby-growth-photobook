@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
+import '../../notifications/google_calendar.dart';
 import '../../notifications/reminder_service.dart';
 
 /// Tells the parent, in words, whether reminders will actually reach them on
@@ -52,10 +53,8 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
           .firstWhere((b) => b.id == widget.babyId);
       await ref.read(babiesProvider.notifier).syncGoogleCalendar(baby);
       _say('Reminders are in your Google Calendar.');
-    } catch (_) {
-      _say(
-        'Could not add the reminders. Allow Google Calendar access and try again.',
-      );
+    } catch (e) {
+      _say('Could not add the reminders. ${calendarErrorMessage(e)}');
     }
     if (mounted) setState(() => _busy = false);
   }

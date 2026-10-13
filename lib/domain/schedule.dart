@@ -4,6 +4,10 @@
 /// starts at a baby age and repeats at a frequency until the next phase
 /// begins; the last phase continues indefinitely. The finest frequency is
 /// one day, so at most one photo is ever due per day.
+///
+/// An optional finish line ([PhotoSchedule.end]) is an age at which the photo
+/// series stops: nothing is due after it, and the finish-line day itself always
+/// gets a final photo.
 library;
 
 enum TimeUnit { day, week, month }
@@ -45,7 +49,7 @@ class Phase {
 }
 
 class PhotoSchedule {
-  PhotoSchedule(this.birthDate, List<Phase> phases)
+  PhotoSchedule(this.birthDate, List<Phase> phases, {this.end})
     : assert(phases.isNotEmpty),
       _starts = phases.map((p) => p.start.from(birthDate)).toList(),
       phases = List.unmodifiable(phases) {
@@ -54,7 +58,16 @@ class PhotoSchedule {
         throw ArgumentError('Phase starts must be strictly increasing');
       }
     }
+    if (end != null && !end!.from(birthDate).isAfter(_starts.last)) {
+      throw ArgumentError('The finish line must be after the last step starts');
+    }
   }
+
+  /// Age at which the series stops, or null if it goes on.
+  final Age? end;
+
+  /// The finish-line date, or null if the schedule goes on.
+  DateTime? get endDate => end?.from(birthDate);
 
   final DateTime birthDate;
   final List<Phase> phases;
@@ -62,7 +75,10 @@ class PhotoSchedule {
 
   /// Due dates (date-only, UTC) within [from]..[to] inclusive, ascending.
   List<DateTime> dueDates(DateTime from, DateTime to) {
-    final lo = _dateOnly(from), hi = _dateOnly(to);
+    final lo = _dateOnly(from);
+    var hi = _dateOnly(to);
+    final finish = endDate;
+    if (finish != null && hi.isAfter(finish)) hi = finish;
     final out = <DateTime>[];
     for (var i = 0; i < phases.length; i++) {
       final start = _starts[i];
@@ -76,14 +92,24 @@ class PhotoSchedule {
         if (!d.isBefore(lo)) out.add(d);
       }
     }
+    // The finish-line day always gets a last photo.
+    if (finish != null &&
+        !finish.isBefore(lo) &&
+        !finish.isAfter(hi) &&
+        !out.contains(finish)) {
+      out.add(finish);
+    }
     return out;
   }
 
-  /// First due date strictly after [date], or null never (schedule is endless).
-  DateTime nextDueAfter(DateTime date) {
+  /// First due date strictly after [date], or null once the finish line has
+  /// passed (never null for a schedule without one).
+  DateTime? nextDueAfter(DateTime date) {
     var window = 400;
     final from = _dateOnly(date).add(const Duration(days: 1));
+    final finish = endDate;
     while (true) {
+      if (finish != null && from.isAfter(finish)) return null;
       final r = dueDates(from, from.add(Duration(days: window)));
       if (r.isNotEmpty) return r.first;
       window *= 2;

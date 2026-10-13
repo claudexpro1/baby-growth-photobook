@@ -25,14 +25,52 @@ class PhaseDraft {
   );
 }
 
-/// Returns an error message if the phases cannot form a schedule, else null.
-String? validatePhases(DateTime birth, List<PhaseDraft> drafts) {
+/// The editable finish line: the age at which the photo series stops.
+class FinishDraft {
+  FinishDraft({
+    this.enabled = false,
+    this.value = 24,
+    this.unit = TimeUnit.month,
+  });
+  bool enabled;
+  int value;
+  TimeUnit unit;
+
+  factory FinishDraft.from(Age? end) => end == null
+      ? FinishDraft()
+      : FinishDraft(enabled: true, value: end.value, unit: end.unit);
+
+  Age? toAge() => enabled ? Age(value, unit) : null;
+}
+
+/// Returns an error message if the phases (and finish line) cannot form a
+/// schedule, else null.
+String? validatePhases(
+  DateTime birth,
+  List<PhaseDraft> drafts, {
+  FinishDraft? finish,
+}) {
   try {
-    PhotoSchedule(birth, drafts.map((d) => d.toPhase()).toList());
+    PhotoSchedule(
+      birth,
+      drafts.map((d) => d.toPhase()).toList(),
+      end: finish?.toAge(),
+    );
     return null;
-  } on ArgumentError {
-    return 'Each phase must start later than the one before it.';
+  } on ArgumentError catch (e) {
+    return '${e.message}'.contains('finish')
+        ? 'The finish line must be later than the start of the last step.'
+        : 'Each phase must start later than the one before it.';
   }
+}
+
+/// "2 years" for whole years, otherwise "5 weeks" and so on.
+String ageSpanLabel(int value, TimeUnit unit) {
+  if (unit == TimeUnit.month && value >= 12 && value % 12 == 0) {
+    final y = value ~/ 12;
+    return '$y year${y == 1 ? '' : 's'}';
+  }
+  return '$value ${unit.name}${value == 1 ? '' : 's'}';
 }
 
 const schedulePresets = <String, List<List<Object>>>{
@@ -52,8 +90,16 @@ const schedulePresets = <String, List<List<Object>>>{
 
 /// "Photo every ..." phases, shown as plain sentences the user can tweak.
 class ScheduleEditor extends StatefulWidget {
-  const ScheduleEditor({super.key, required this.phases, this.onChanged});
+  const ScheduleEditor({
+    super.key,
+    required this.phases,
+    this.finish,
+    this.onChanged,
+  });
   final List<PhaseDraft> phases;
+
+  /// The finish line; when null the editor has no finish-line section.
+  final FinishDraft? finish;
   final VoidCallback? onChanged;
 
   @override
@@ -85,6 +131,12 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
             }
           : 'every ${p.every} ${_plural(p.every, p.unit)}';
       parts.add('$from: $every');
+    }
+    final f = widget.finish;
+    if (f != null && f.enabled) {
+      parts.add(
+        'Finish line at ${ageSpanLabel(f.value, f.unit)}: a last photo, then done',
+      );
     }
     return parts.join('\n');
   }
@@ -142,6 +194,7 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
             );
           }),
         ),
+        if (widget.finish != null) _finishCard(widget.finish!),
         Card(
           color: Theme.of(context).colorScheme.primaryContainer
               .withValues(alpha: 0.4),
@@ -151,6 +204,56 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _finishCard(FinishDraft f) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Finish line'),
+              subtitle: const Text(
+                'Stop the photos and reminders at an age you choose. '
+                'The finish-line day gets one last photo.',
+              ),
+              value: f.enabled,
+              onChanged: (v) => _change(() => f.enabled = v),
+            ),
+            if (f.enabled) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final y in const [1, 2, 3, 5, 18])
+                    ChoiceChip(
+                      label: Text('$y year${y == 1 ? '' : 's'}'),
+                      selected: f.unit == TimeUnit.month && f.value == y * 12,
+                      onSelected: (_) => _change(() {
+                        f.value = y * 12;
+                        f.unit = TimeUnit.month;
+                      }),
+                    ),
+                ],
+              ),
+              _row(
+                'Finish line at age',
+                f.value,
+                f.unit,
+                1,
+                (v, u) => _change(() {
+                  f.value = v;
+                  f.unit = u;
+                }),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

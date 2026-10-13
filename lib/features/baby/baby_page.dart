@@ -12,6 +12,7 @@ import '../../data/photo_library.dart';
 import '../../data/providers.dart';
 import '../../domain/age_label.dart';
 import '../../domain/baby.dart';
+import '../../notifications/google_calendar.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
 import 'capture.dart';
@@ -78,13 +79,14 @@ class _BabyPageState extends ConsumerState<BabyPage> {
             ),
           ),
         );
-    } catch (_) {
+    } catch (e) {
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 10),
             content: Text(
-              'Could not add the reminders. Allow Google Calendar access and try again.',
+              'Could not add the reminders. ${calendarErrorMessage(e)}',
             ),
           ),
         );
@@ -132,7 +134,7 @@ class _BabyPageState extends ConsumerState<BabyPage> {
     final loc = MaterialLocalizations.of(context);
 
     return Theme(
-      data: buildTheme(baby.gender),
+      data: themeFor(context, baby.gender),
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;
@@ -222,7 +224,9 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                               ? "Today's photo is saved ♥"
                               : dueToday
                               ? "It's photo day!"
-                              : 'Next photo: ${loc.formatFullDate(baby.schedule.nextDueAfter(todayUtc))}',
+                              : baby.schedule.nextDueAfter(todayUtc) == null
+                              ? 'Finish line reached ♥'
+                              : 'Next photo: ${loc.formatFullDate(baby.schedule.nextDueAfter(todayUtc)!)}',
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 12),

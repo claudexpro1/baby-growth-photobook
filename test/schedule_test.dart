@@ -75,4 +75,46 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  group('finish line', () {
+    PhotoSchedule finite() => PhotoSchedule(birth, const [
+      Phase(start: Age.birth, frequency: Frequency.weekly),
+    ], end: const Age(1, TimeUnit.month));
+
+    test('nothing is due after it, and the finish day gets a last photo', () {
+      final all = finite().dueDates(birth, d(2030, 1, 1));
+      expect(all, [
+        d(2026, 10, 10),
+        d(2026, 10, 17),
+        d(2026, 10, 24),
+        d(2026, 10, 31),
+        d(2026, 11, 7),
+        d(2026, 11, 10), // finish line, not on the weekly rhythm
+      ]);
+    });
+
+    test('no duplicate when the finish day is already due', () {
+      final s = PhotoSchedule(birth, const [
+        Phase(start: Age.birth, frequency: Frequency.weekly),
+      ], end: const Age(4, TimeUnit.week));
+      expect(s.dueDates(birth, d(2027, 1, 1)).last, d(2026, 11, 7));
+      expect(s.dueDates(birth, d(2027, 1, 1)).length, 5);
+    });
+
+    test('nextDueAfter is null once the finish line is passed', () {
+      expect(finite().nextDueAfter(d(2026, 11, 7)), d(2026, 11, 10));
+      expect(finite().nextDueAfter(d(2026, 11, 10)), isNull);
+      expect(finite().nextDueAfter(d(2030, 1, 1)), isNull);
+    });
+
+    test('must come after the last step starts', () {
+      expect(
+        () => PhotoSchedule(birth, const [
+          Phase(start: Age.birth, frequency: Frequency.daily),
+          Phase(start: Age(2, TimeUnit.month), frequency: Frequency.weekly),
+        ], end: const Age(2, TimeUnit.month)),
+        throwsArgumentError,
+      );
+    });
+  });
 }

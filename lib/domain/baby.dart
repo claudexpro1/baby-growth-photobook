@@ -43,6 +43,7 @@ class Baby {
     required this.birth,
     this.birthPlace = '',
     required this.phases,
+    this.end,
     this.reminder = const ReminderSettings(),
     this.storage = StorageMode.appOnly,
     this.driveFolderId,
@@ -58,6 +59,9 @@ class Baby {
   final DateTime birth;
   final String birthPlace;
   final List<Phase> phases;
+
+  /// Finish line: the age at which the photo series stops (null: never).
+  final Age? end;
   final ReminderSettings reminder;
   final StorageMode storage;
 
@@ -74,6 +78,8 @@ class Baby {
     DateTime? birth,
     String? birthPlace,
     List<Phase>? phases,
+    Age? end,
+    bool clearEnd = false,
     ReminderSettings? reminder,
     StorageMode? storage,
     String? driveFolderId,
@@ -87,6 +93,7 @@ class Baby {
     birth: birth ?? this.birth,
     birthPlace: birthPlace ?? this.birthPlace,
     phases: phases ?? this.phases,
+    end: clearEnd ? null : (end ?? this.end),
     reminder: reminder ?? this.reminder,
     storage: storage ?? this.storage,
     driveFolderId: driveFolderId ?? this.driveFolderId,
@@ -96,7 +103,7 @@ class Baby {
         : (googleCalendarId ?? this.googleCalendarId),
   );
 
-  PhotoSchedule get schedule => PhotoSchedule(birth, phases);
+  PhotoSchedule get schedule => PhotoSchedule(birth, phases, end: end);
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -105,6 +112,7 @@ class Baby {
     'birth': birth.toIso8601String(),
     'birthPlace': birthPlace,
     'phases': phases.map(phaseToJson).toList(),
+    if (end != null) 'end': {'value': end!.value, 'unit': end!.unit.name},
     'reminder': reminder.toJson(),
     'storage': storage.name,
     'driveFolderId': driveFolderId,
@@ -121,6 +129,14 @@ class Baby {
     phases: (j['phases'] as List)
         .map((p) => phaseFromJson(p as Map<String, dynamic>))
         .toList(),
+    end: j['end'] == null
+        ? null
+        : Age(
+            (j['end'] as Map<String, dynamic>)['value'] as int,
+            TimeUnit.values.byName(
+              (j['end'] as Map<String, dynamic>)['unit'] as String,
+            ),
+          ),
     reminder: ReminderSettings.fromJson(j['reminder'] as Map<String, dynamic>),
     storage: StorageMode.values.byName(j['storage'] as String),
     driveFolderId: j['driveFolderId'] as String?,

@@ -232,7 +232,7 @@ class _BabyCard extends ConsumerWidget {
     final loc = MaterialLocalizations.of(context);
     final waiting = photos.where((p) => !p.synced).length;
     return Theme(
-      data: buildTheme(baby.gender),
+      data: themeFor(context, baby.gender),
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;
@@ -282,7 +282,9 @@ class _BabyCard extends ConsumerWidget {
                             )
                           else
                             Text(
-                              'Next photo: ${loc.formatMediumDate(next)}',
+                              next == null
+                                  ? 'Finish line reached ♥'
+                                  : 'Next photo: ${loc.formatMediumDate(next)}',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           if (baby.storage == StorageMode.appOnly)

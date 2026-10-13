@@ -27,7 +27,9 @@ List<PlannedReminder> planReminders(
   final out = <PlannedReminder>[];
   var from = today;
   final schedule = baby.schedule;
+  final finish = schedule.endDate;
   while (out.length < max) {
+    if (finish != null && from.isAfter(finish)) break; // finish line passed
     final due = schedule.dueDates(from, from.add(const Duration(days: 120)));
     if (due.isEmpty) {
       from = from.add(const Duration(days: 121));
