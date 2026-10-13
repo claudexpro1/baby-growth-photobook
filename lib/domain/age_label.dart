@@ -32,3 +32,14 @@ String ageSection(DateTime birth, DateTime date) {
 }
 
 String _n(int n, String unit) => '$n $unit${n == 1 ? '' : 's'}';
+
+/// How old the baby is right now, in words: "born today", "2 days old",
+/// "3 weeks, 2 days old"; before the birth: "due in 5 days".
+String ageNowLabel(DateTime birth, DateTime now) {
+  final b = DateTime.utc(birth.year, birth.month, birth.day);
+  final d = DateTime.utc(now.year, now.month, now.day);
+  final days = d.difference(b).inDays;
+  if (days < 0) return 'due in ${_n(-days, 'day')}';
+  if (days == 0) return 'born today';
+  return '${ageLabel(birth, now)} old';
+}

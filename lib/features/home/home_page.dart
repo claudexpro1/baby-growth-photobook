@@ -3,16 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../common/drive_consent.dart';
-import '../common/photo_image.dart';
 import 'welcome_view.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/providers.dart';
-import '../../domain/age_label.dart';
 import '../../domain/baby.dart';
 import '../../notifications/calendar_status.dart';
+import '../common/baby_avatar.dart';
 import '../common/calendar_actions.dart';
 import '../../ui/theme.dart';
 import '../baby/baby_page.dart';
@@ -300,23 +299,7 @@ class _BabyCard extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: SizedBox(
-                        width: 84,
-                        height: 84,
-                        child: photos.isEmpty
-                            ? ColoredBox(
-                                color: scheme.primaryContainer,
-                                child: Icon(
-                                  Icons.child_care,
-                                  size: 40,
-                                  color: scheme.primary,
-                                ),
-                              )
-                            : PhotoImage(photos.last, cacheWidth: 250),
-                      ),
-                    ),
+                    BabyAvatar(baby: baby, photo: photos.lastOrNull),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -326,7 +309,7 @@ class _BabyCard extends ConsumerWidget {
                             baby.name,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          Text(ageLabel(baby.birth, DateTime.now())),
+                          Text(birthSummary(context, baby)),
                           const SizedBox(height: 6),
                           if (dueToday)
                             Chip(

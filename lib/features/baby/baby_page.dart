@@ -12,6 +12,7 @@ import '../../data/photo_library.dart';
 import '../../data/providers.dart';
 import '../../domain/age_label.dart';
 import '../../domain/baby.dart';
+import '../common/baby_avatar.dart';
 import '../common/calendar_actions.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
@@ -192,9 +193,37 @@ class _BabyPageState extends ConsumerState<BabyPage> {
             body: ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
               children: [
-                Text(
-                  ageLabel(baby.birth, DateTime.now()),
-                  style: Theme.of(context).textTheme.titleMedium,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      BabyAvatar(
+                        baby: baby,
+                        photo: photos.lastOrNull,
+                        size: 72,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              baby.name,
+                              style: Theme.of(context).textTheme.headlineSmall,
+                            ),
+                            Text(
+                              ageNowLabel(baby.birth, DateTime.now()),
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text(
+                              bornText(context, baby),
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Card(
