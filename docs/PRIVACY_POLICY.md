@@ -22,7 +22,7 @@ Contact: [CONTACT EMAIL]
 | Photo reminders, if you add them to Google Calendar | In a calendar the app creates in your own Google Calendar, "Baby Photobook - <baby name>", with an event on each photo day | No |
 | A photobook PDF, if you make a share link | In a `Shared` folder in your own Drive (the PDF shows the baby's name, birth date, birth place if you entered one, and the photos with ages and dates) | No |
 
-The app does not encrypt this data itself; it relies on your phone's own protection. The app switches off Android's automatic cloud backup for its own data, so the photos and profiles on your phone are not copied to any backup unless you put them in your own Drive.
+The app does not encrypt this data itself; it relies on your device's and browser's own protection. The data in your browser is not copied to any backup of ours (we have none); if you clear the browser's site data it is removed from that device, and the copy in your own Drive remains.
 
 ## Google Drive
 
@@ -44,13 +44,10 @@ Nothing is shared unless you do it. If you make a PDF photobook or share a photo
 
 ## Permissions
 
-- **Camera:** to take your baby's photo (on iPhone the app asks to use the camera; on Android the photo is taken with your phone's camera app).
+- **Camera:** to take your baby's photo. The browser or phone asks first.
 - **Photo library / picker:** to choose an existing photo; the app only gets the photos you pick.
-- **Notifications:** for reminders you set. The app asks when you finish setting up with reminders on. You can turn reminders off in the app.
-- **Run at start-up (Android):** so scheduled reminders come back after you restart your phone.
+- **Notifications:** reminders come from Google Calendar (see above), not from a server of ours. You can turn reminders off in the app.
 - **Internet:** to talk to Google Drive.
-
-Reminders are approximate: they can arrive a few minutes after the time you chose. The app does not use exact alarms.
 
 ## Children
 

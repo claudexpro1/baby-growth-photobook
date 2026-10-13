@@ -1,5 +1,8 @@
 # Baby Growth Photobook - Product Spec (v1 draft for review)
 
+> **Update 2026-10-14: the app is now web-only (a PWA for every phone and laptop).** Sections below that talk about Android/iOS builds, Android permissions, alarms, TestFlight, an Apple Developer account or iCloud describe the earlier native plan and are kept for history only. What is current: the web app, Google Drive (`drive.file`), Google Calendar reminders (`calendar.app.created`), profile in `BabyPhotobook/_App data/`. See README.md and the changelog.
+
+
 Status: draft for owner review, last checked against the code on 2026-10-11. "Built" means it exists in the code today: profiles, 4-step onboarding with Google Drive sign-in, schedule builder, home screen, baby page (take photo / from gallery, timeline, photo viewer), settings, local reminders, Google Drive upload / delete / restore of missing photos, PDF photobook and Drive share link. Everything marked "planned" or "not built" does not exist yet. See [PLAN.md](PLAN.md) for the technical plan.
 
 ## 1. Goals

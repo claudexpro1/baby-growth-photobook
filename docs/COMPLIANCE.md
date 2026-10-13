@@ -1,5 +1,8 @@
 # Compliance Review (draft, not legal advice)
 
+> **Update 2026-10-14: the app is now web-only (a PWA for every phone and laptop).** Sections below that talk about Android/iOS builds, Android permissions, alarms, TestFlight, an Apple Developer account or iCloud describe the earlier native plan and are kept for history only. What is current: the web app, Google Drive (`drive.file`), Google Calendar reminders (`calendar.app.created`), profile in `BabyPhotobook/_App data/`. See README.md and the changelog.
+
+
 Status key: **Done** = in place today. **To do** = we must build/write it. **Needs owner action** = only the owner can do it (accounts, legal, forms).
 Reality check (checked against the code on 2026-10-11): the app now has onboarding with Google Drive sign-in, schedule, local reminders, camera/gallery capture, Drive upload/delete/restore of missing photos, PDF export and a Drive share link. iCloud, a full profile restore, "delete all my data" and "Disconnect Drive" are not built. Items below are marked by what the code does today. A lawyer should review the privacy policy before launch.
 
