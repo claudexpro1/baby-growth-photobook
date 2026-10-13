@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/calendar/v3.dart' as cal;
 
@@ -17,6 +18,22 @@ class GoogleCalendarReminders {
   static final GoogleCalendarReminders instance = GoogleCalendarReminders._();
 
   static const scopes = [cal.CalendarApi.calendarAppCreatedScope];
+
+  /// Where the app lives. Every reminder carries this link, so tapping the
+  /// notification or the event in Google Calendar opens the app.
+  static const appUrl = 'https://claudexpro1.github.io/baby-growth-photobook/';
+
+  /// The link to put in events: the address the app is running from when that
+  /// is a real web address, otherwise [appUrl].
+  static String get appLink {
+    if (kIsWeb && Uri.base.scheme.startsWith('http')) {
+      return Uri.base
+          .replace(query: '', fragment: '')
+          .toString()
+          .replaceAll(RegExp(r'\?$'), '');
+    }
+    return appUrl;
+  }
 
   /// How many upcoming reminders are kept in the calendar.
   static const windowSize = 60;
@@ -139,7 +156,9 @@ class GoogleCalendarReminders {
       id: id,
       status: 'confirmed',
       summary: "Time for ${baby.name}'s photo",
-      description: ageLabel(baby.birth, r.photoDate),
+      description:
+          '${ageLabel(baby.birth, r.photoDate)}\n\nOpen Baby Photobook: $appLink',
+      source: cal.EventSource(title: 'Baby Photobook', url: appLink),
       start: cal.EventDateTime(dateTime: _withOffset(start)),
       end: cal.EventDateTime(dateTime: _withOffset(end)),
       reminders: cal.EventReminders(

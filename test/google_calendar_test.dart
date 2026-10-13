@@ -98,6 +98,20 @@ void main() {
     expect(e['reminders']['overrides'][0], {'method': 'popup', 'minutes': 0});
   });
 
+  test('every reminder carries the link that opens the app', () async {
+    await service.sync(baby(), now, {});
+    final e = server.events.values.first;
+    expect(
+      e['description'],
+      contains('Open Baby Photobook: ${GoogleCalendarReminders.appUrl}'),
+    );
+    expect(e['source'], {
+      'title': 'Baby Photobook',
+      'url': GoogleCalendarReminders.appUrl,
+    });
+    expect(GoogleCalendarReminders.appUrl, startsWith('https://'));
+  });
+
   test('syncing again updates instead of duplicating', () async {
     await service.sync(baby(), now, {});
     await service.sync(baby(calendarId: 'cal1'), now, {});
