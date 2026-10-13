@@ -15,6 +15,7 @@ class FakeCalendarServer {
   bool calendarExists = false;
   int calendarsCreated = 0;
   int calls = 0;
+  String? title; // set by a create or a rename
 
   /// Pretend writes succeed but nothing is kept (a hidden/broken calendar).
   bool dropWrites = false;
@@ -37,10 +38,15 @@ class FakeCalendarServer {
     if (path.endsWith('/calendars') && r.method == 'POST') {
       calendarExists = true;
       calendarsCreated++;
-      return ok({'id': 'cal1'});
+      title = (jsonDecode(r.body) as Map)['summary'] as String?;
+      return ok({'id': 'cal1', 'summary': title});
     }
     if (path.endsWith('/calendars/cal1') && r.method == 'GET') {
-      return calendarExists ? ok({'id': 'cal1'}) : err(404);
+      return calendarExists ? ok({'id': 'cal1', 'summary': title}) : err(404);
+    }
+    if (path.endsWith('/calendars/cal1') && r.method == 'PATCH') {
+      title = (jsonDecode(r.body) as Map)['summary'] as String?;
+      return ok({'id': 'cal1', 'summary': title});
     }
     if (path.endsWith('/calendars/cal1') && r.method == 'DELETE') {
       calendarExists = false;
@@ -155,5 +161,15 @@ void main() {
       DateTime.utc(2026, 10, 12),
     );
     expect(RegExp(r'^[a-v0-9]{5,}$').hasMatch(id), isTrue);
+  });
+
+  test('a renamed baby renames the calendar and the reminders', () async {
+    await service.sync(baby(), now, {});
+    expect(server.title, 'Baby Photobook - Luna');
+    final renamed = baby(calendarId: 'cal1').copyWith(name: 'Lulu');
+    await service.sync(renamed, now, {});
+    expect(server.title, 'Baby Photobook - Lulu');
+    expect(server.calendarsCreated, 1);
+    expect(server.events.values.first['summary'], "Time for Lulu's photo");
   });
 }

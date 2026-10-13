@@ -23,6 +23,9 @@ abstract class CloudStorage {
   /// Finds or creates `BabyPhotobook/<babyName>/` and returns its id.
   Future<String> ensureBabyFolder(String babyName, {String? existingId});
 
+  /// Renames a folder (the id stays the same).
+  Future<void> renameFolder(String folderId, String newName);
+
   /// Finds or creates `BabyPhotobook/_App data/`, where the app keeps its own
   /// files (one profile per baby) so baby folders hold only photos.
   Future<String> ensureAppDataFolder();

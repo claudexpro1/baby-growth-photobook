@@ -58,6 +58,30 @@ class PhotoSync {
   PhotoSync(this.cloud);
   final CloudStorage cloud;
 
+  /// Finds or creates the baby's folder and keeps its name in step with the
+  /// baby's name (a renamed baby renames the folder; the id stays).
+  Future<Baby> _folder(Baby baby, Iterable<Baby> allBabies) async {
+    final want = driveFolderNameFor(baby, allBabies);
+    final folderId = await cloud.ensureBabyFolder(
+      want,
+      existingId: baby.driveFolderId,
+    );
+    var name = baby.driveFolderName;
+    if (folderId == baby.driveFolderId && name != want) {
+      try {
+        await cloud.renameFolder(folderId, want);
+        name = want;
+      } catch (_) {
+        // Not fatal: the next sync tries again.
+      }
+    } else if (folderId != baby.driveFolderId) {
+      name = want; // just found or made under this name
+    }
+    return baby.driveFolderId == folderId && baby.driveFolderName == name
+        ? baby
+        : baby.copyWith(driveFolderId: folderId, driveFolderName: name);
+  }
+
   /// Uploads every photo that is not yet in the cloud. Safe to call often;
   /// failures (for example no connection) leave the photo queued for next time.
   Future<SyncResult> upload(
@@ -65,13 +89,8 @@ class PhotoSync {
     PhotoLibrary library, {
     Iterable<Baby> allBabies = const [],
   }) async {
-    final folderId = await cloud.ensureBabyFolder(
-      driveFolderNameFor(baby, allBabies),
-      existingId: baby.driveFolderId,
-    );
-    final updated = baby.driveFolderId == folderId
-        ? baby
-        : baby.copyWith(driveFolderId: folderId);
+    final updated = await _folder(baby, allBabies);
+    final folderId = updated.driveFolderId!;
     var ok = 0, failed = 0;
     // The profile is saved in the app-data folder (not among the photos), so a
     // new phone can restore everything.
@@ -114,10 +133,8 @@ class PhotoSync {
     PhotoLibrary library, {
     Iterable<Baby> allBabies = const [],
   }) async {
-    final folderId = await cloud.ensureBabyFolder(
-      driveFolderNameFor(baby, allBabies),
-      existingId: baby.driveFolderId,
-    );
+    final updated = await _folder(baby, allBabies);
+    final folderId = updated.driveFolderId!;
     final have = (await library.list()).map((p) => p.name.fileName).toSet();
     var n = 0, failed = 0;
     for (final f in await cloud.list(folderId)) {
@@ -130,9 +147,6 @@ class PhotoSync {
         failed++;
       }
     }
-    final updated = baby.driveFolderId == folderId
-        ? baby
-        : baby.copyWith(driveFolderId: folderId);
     return SyncResult(updated, downloaded: n, failed: failed);
   }
 

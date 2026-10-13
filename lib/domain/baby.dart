@@ -47,6 +47,7 @@ class Baby {
     this.reminder = const ReminderSettings(),
     this.storage = StorageMode.appOnly,
     this.driveFolderId,
+    this.driveFolderName,
     this.driveSharedFolderId,
     this.googleCalendarId,
   });
@@ -67,6 +68,9 @@ class Baby {
 
   /// Google Drive folder ids (set once the folders have been created).
   final String? driveFolderId;
+
+  /// The name that folder had at the last sync, so a renamed baby renames it.
+  final String? driveFolderName;
   final String? driveSharedFolderId;
 
   /// The Google Calendar holding this baby's photo reminders, if linked.
@@ -83,6 +87,7 @@ class Baby {
     ReminderSettings? reminder,
     StorageMode? storage,
     String? driveFolderId,
+    String? driveFolderName,
     String? driveSharedFolderId,
     String? googleCalendarId,
     bool clearGoogleCalendar = false,
@@ -97,6 +102,7 @@ class Baby {
     reminder: reminder ?? this.reminder,
     storage: storage ?? this.storage,
     driveFolderId: driveFolderId ?? this.driveFolderId,
+    driveFolderName: driveFolderName ?? this.driveFolderName,
     driveSharedFolderId: driveSharedFolderId ?? this.driveSharedFolderId,
     googleCalendarId: clearGoogleCalendar
         ? null
@@ -116,6 +122,7 @@ class Baby {
     'reminder': reminder.toJson(),
     'storage': storage.name,
     'driveFolderId': driveFolderId,
+    'driveFolderName': driveFolderName,
     'driveSharedFolderId': driveSharedFolderId,
     'googleCalendarId': googleCalendarId,
   };
@@ -140,6 +147,7 @@ class Baby {
     reminder: ReminderSettings.fromJson(j['reminder'] as Map<String, dynamic>),
     storage: StorageMode.values.byName(j['storage'] as String),
     driveFolderId: j['driveFolderId'] as String?,
+    driveFolderName: j['driveFolderName'] as String?,
     driveSharedFolderId: j['driveSharedFolderId'] as String?,
     googleCalendarId: j['googleCalendarId'] as String?,
   );

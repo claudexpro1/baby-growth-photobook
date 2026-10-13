@@ -99,6 +99,12 @@ class DriveCloud implements CloudStorage {
   }
 
   @override
+  Future<void> renameFolder(String folderId, String newName) async {
+    final api = await _api();
+    await api.files.update(drive.File(name: newName), folderId);
+  }
+
+  @override
   Future<String> ensureAppDataFolder() async {
     final api = await _api();
     final root = await _ensure(api, rootFolderName, 'root');

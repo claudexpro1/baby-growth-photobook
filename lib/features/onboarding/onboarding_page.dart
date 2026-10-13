@@ -6,17 +6,11 @@ import '../../domain/baby.dart';
 import '../../domain/schedule.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
+import '../common/baby_details_form.dart';
 import '../common/drive_consent.dart';
 import '../common/schedule_editor.dart';
 
-/// Earliest birth date offered: 25 years back covers parents adding an older
-/// child's early photos; the schedule does not care about the exact year.
-DateTime birthDateFirst(DateTime now) => DateTime(now.year - 25, 1, 1);
-
-/// Latest birth date offered: an expected due date up to ten months ahead, so
-/// parents can set up before the birth.
-DateTime birthDateLast(DateTime now) =>
-    DateTime(now.year, now.month + 10, now.day);
+export '../common/baby_details_form.dart' show birthDateFirst, birthDateLast;
 
 /// Four friendly steps: about the baby, where photos live, how often, reminders.
 class OnboardingPage extends ConsumerStatefulWidget {
@@ -232,67 +226,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
-  Widget _aboutStep() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      TextField(
-        controller: _name,
-        textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(labelText: 'Name'),
-      ),
-      const SizedBox(height: 20),
-      const Text('Girl or boy? (This only picks the colours.)'),
-      const SizedBox(height: 8),
-      SegmentedButton<Gender>(
-        showSelectedIcon: false,
-        segments: const [
-          ButtonSegment(value: Gender.girl, label: Text('Girl')),
-          ButtonSegment(value: Gender.boy, label: Text('Boy')),
-          ButtonSegment(value: Gender.neutral, label: Text('Skip')),
-        ],
-        selected: {_gender},
-        onSelectionChanged: (s) => setState(() => _gender = s.first),
-      ),
-      const SizedBox(height: 12),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Birth date'),
-        subtitle: Text(
-          MaterialLocalizations.of(context).formatFullDate(_birthDate),
-        ),
-        trailing: const Icon(Icons.calendar_today),
-        onTap: () async {
-          final d = await showDatePicker(
-            context: context,
-            initialDate: _birthDate,
-            firstDate: birthDateFirst(DateTime.now()),
-            lastDate: birthDateLast(DateTime.now()),
-          );
-          if (d != null) setState(() => _birthDate = d);
-        },
-      ),
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Birth time'),
-        subtitle: Text(_birthTime.format(context)),
-        trailing: const Icon(Icons.schedule),
-        onTap: () async {
-          final t = await showTimePicker(
-            context: context,
-            initialTime: _birthTime,
-          );
-          if (t != null) setState(() => _birthTime = t);
-        },
-      ),
-      const SizedBox(height: 8),
-      TextField(
-        controller: _place,
-        textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(
-          labelText: 'Place of birth (optional)',
-        ),
-      ),
-    ],
+  Widget _aboutStep() => BabyDetailsForm(
+    name: _name,
+    place: _place,
+    gender: _gender,
+    birthDate: _birthDate,
+    birthTime: _birthTime,
+    onGender: (g) => setState(() => _gender = g),
+    onBirthDate: (d) => setState(() => _birthDate = d),
+    onBirthTime: (t) => setState(() => _birthTime = t),
   );
 
   Widget _storageStep() {

@@ -5,6 +5,7 @@ import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
+import '../common/baby_details_form.dart';
 import '../common/reminder_status.dart';
 import '../common/schedule_editor.dart';
 
@@ -20,6 +21,9 @@ class EditBabyPage extends ConsumerStatefulWidget {
 class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   late Baby _baby;
   late final TextEditingController _name;
+  late final TextEditingController _place;
+  late DateTime _birthDate;
+  late TimeOfDay _birthTime;
   late List<PhaseDraft> _phases;
   late FinishDraft _finish;
   late ReminderSettings _reminder;
@@ -34,6 +38,9 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
         .value!
         .firstWhere((b) => b.id == widget.babyId);
     _name = TextEditingController(text: _baby.name);
+    _place = TextEditingController(text: _baby.birthPlace);
+    _birthDate = DateTime(_baby.birth.year, _baby.birth.month, _baby.birth.day);
+    _birthTime = TimeOfDay.fromDateTime(_baby.birth);
     _phases = _baby.phases.map(PhaseDraft.from).toList();
     _finish = FinishDraft.from(_baby.end);
     _reminder = _baby.reminder;
@@ -43,8 +50,17 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   @override
   void dispose() {
     _name.dispose();
+    _place.dispose();
     super.dispose();
   }
+
+  DateTime get _birth => DateTime(
+    _birthDate.year,
+    _birthDate.month,
+    _birthDate.day,
+    _birthTime.hour,
+    _birthTime.minute,
+  );
 
   Baby get _current => ref
       .read(babiesProvider)
@@ -54,9 +70,11 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   Future<void> _save() async {
     final err = _name.text.trim().isEmpty
         ? "Please enter your baby's name."
-        : validatePhases(_baby.birth, _phases, finish: _finish);
+        : validatePhases(_birth, _phases, finish: _finish);
     setState(() => _error = err);
     if (err != null) return;
+    final birthChanged = _birth != _baby.birth;
+    if (birthChanged && !await _confirmBirthChange()) return;
     if (_reminder.enabled && !_baby.reminder.enabled) {
       final granted = await ReminderService.instance
           .requestPermission()
@@ -77,13 +95,67 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
           _current.copyWith(
             name: _name.text.trim(),
             gender: _gender,
+            birth: _birth,
+            birthPlace: _place.text.trim(),
             phases: _phases.map((p) => p.toPhase()).toList(),
             end: _finish.toAge(),
             clearEnd: !_finish.enabled,
             reminder: _reminder,
           ),
         );
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('Saved. ${_name.text.trim()}\'s details are updated.'),
+      ),
+    );
+  }
+
+  /// Changing the birth moves every photo day, so ask first. Photos dated
+  /// before the new birth are mentioned: they stay, shown as "before birth".
+  Future<bool> _confirmBirthChange() async {
+    final newDay = DateTime.utc(
+      _birthDate.year,
+      _birthDate.month,
+      _birthDate.day,
+    );
+    final before = (await ref.read(photosProvider(_baby.id).future))
+        .where((p) => p.date.isBefore(newDay))
+        .length;
+    if (!mounted) return false;
+    final loc = MaterialLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Change the birth date?'),
+        content: Text(
+          [
+            'New birth: ${loc.formatFullDate(_birthDate)}.',
+            'Your photo days are counted from the birth, so they all move, '
+                'and the ages shown on the photos change. Reminders and the '
+                'Google Calendar are updated.',
+            if (before > 0)
+              '$before photo${before == 1 ? ' is' : 's are'} dated before this '
+                  'birth. ${before == 1 ? 'It stays' : 'They stay'} in the story '
+                  'and ${before == 1 ? 'is' : 'are'} labelled "Before birth".',
+          ].join('\n\n'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Change birth date'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Future<void> _delete() async {
@@ -169,28 +241,42 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            TextField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name'),
+            BabyDetailsForm(
+              name: _name,
+              place: _place,
+              gender: _gender,
+              birthDate: _birthDate,
+              birthTime: _birthTime,
+              neutralLabel: 'Neutral',
+              onGender: (g) => setState(() => _gender = g),
+              onBirthDate: (d) => setState(() => _birthDate = d),
+              onBirthTime: (t) => setState(() => _birthTime = t),
             ),
-            const SizedBox(height: 16),
-            SegmentedButton<Gender>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: Gender.girl, label: Text('Girl')),
-                ButtonSegment(value: Gender.boy, label: Text('Boy')),
-                ButtonSegment(value: Gender.neutral, label: Text('Neutral')),
-              ],
-              selected: {_gender},
-              onSelectionChanged: (s) => setState(() => _gender = s.first),
+            const SizedBox(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                _baby.storage == StorageMode.googleDrive
+                    ? Icons.cloud_done_outlined
+                    : Icons.phone_android,
+              ),
+              title: Text(
+                _baby.storage == StorageMode.googleDrive
+                    ? 'Photos are kept in your Google Drive'
+                    : 'Photos are only kept in this app',
+              ),
+              subtitle: Text(
+                _baby.storage == StorageMode.googleDrive
+                    ? 'In the BabyPhotobook folder of your Drive.'
+                    : 'Open ${_baby.name}\'s page and tap "Connect Google Drive" to keep them safe.',
+              ),
             ),
             const SizedBox(height: 24),
             Text('How often', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             ScheduleEditor(
               phases: _phases,
-              birth: _baby.birth,
+              birth: _birth,
               finish: _finish,
               onChanged: () => setState(() => _error = null),
             ),

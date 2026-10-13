@@ -41,6 +41,13 @@ class FakeCloud implements CloudStorage {
     return 'folder-1';
   }
 
+  final renames = <String>[]; // 'id -> new name'
+  @override
+  Future<void> renameFolder(String folderId, String newName) async {
+    _check();
+    renames.add('$folderId -> $newName');
+  }
+
   @override
   Future<String> ensureAppDataFolder() async => 'appdata';
   @override
@@ -276,4 +283,24 @@ void main() {
     expect(cloud.folderNames, ['Luna (2026-10-10)', 'luna  (2027-03-04)']);
     expect(driveFolderNameFor(baby, [baby]), 'Luna');
   });
+
+  test(
+    'a renamed baby renames the Drive folder once, keeping the id',
+    () async {
+      final cloud = FakeCloud();
+      final sync = PhotoSync(cloud);
+      final first = await sync.upload(baby, lib);
+      expect(first.baby.driveFolderName, 'Luna');
+      expect(cloud.renames, isEmpty);
+
+      final renamed = first.baby.copyWith(name: 'Lulu');
+      final second = await sync.upload(renamed, lib);
+      expect(cloud.renames, ['folder-1 -> Lulu']);
+      expect(second.baby.driveFolderId, 'folder-1');
+      expect(second.baby.driveFolderName, 'Lulu');
+
+      await sync.upload(second.baby, lib); // nothing more to rename
+      expect(cloud.renames, hasLength(1));
+    },
+  );
 }

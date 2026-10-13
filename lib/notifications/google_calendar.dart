@@ -183,9 +183,14 @@ class GoogleCalendarReminders {
     final existing = baby.googleCalendarId;
     if (existing != null) {
       try {
-        await api.calendars.get(existing);
+        final c = await api.calendars.get(existing);
         // A calendar deleted by hand can still answer `get`; its events cannot.
         await api.events.list(existing, maxResults: 1);
+        final title = calendarTitle(baby);
+        if (c.summary != null && c.summary != title) {
+          // The baby was renamed: rename the calendar too.
+          await api.calendars.patch(cal.Calendar(summary: title), existing);
+        }
         return existing;
       } on cal.DetailedApiRequestError catch (e) {
         if (e.status != 404 && e.status != 410) rethrow;
@@ -193,7 +198,7 @@ class GoogleCalendarReminders {
     }
     final created = await api.calendars.insert(
       cal.Calendar(
-        summary: 'Baby Photobook - ${baby.name}',
+        summary: calendarTitle(baby),
         description:
             "Photo reminders for ${baby.name}. Made by Baby Photobook.",
         timeZone: 'UTC',
@@ -201,6 +206,9 @@ class GoogleCalendarReminders {
     );
     return created.id!;
   }
+
+  /// The calendar's name in Google Calendar.
+  static String calendarTitle(Baby baby) => 'Baby Photobook - ${baby.name}';
 
   /// Stable id per baby and day (base32hex: letters a-v and digits), so the
   /// same reminder is updated, never duplicated.
