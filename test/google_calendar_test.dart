@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/domain/schedule.dart';
 import 'package:baby_growth_photobook/notifications/google_calendar.dart';
+import 'package:baby_growth_photobook/notifications/calendar_status.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:googleapis/calendar/v3.dart' as cal;
 import 'package:http/http.dart' as http;
@@ -13,6 +14,10 @@ class FakeCalendarServer {
   final events = <String, Map<String, dynamic>>{};
   final deletedIds = <String>{};
   bool calendarExists = false;
+
+  /// A calendar deleted by hand: gone from the user's list, yet `get` and
+  /// `events` may still answer for a while.
+  bool ghost = false;
   int calendarsCreated = 0;
   int calls = 0;
   String? title; // set by a create or a rename
@@ -35,8 +40,14 @@ class FakeCalendarServer {
       code,
       headers: {'content-type': 'application/json'},
     );
+    if (path.endsWith('/calendarList/cal1') && r.method == 'GET') {
+      return calendarExists && !ghost
+          ? ok({'id': 'cal1', 'summary': title})
+          : err(404);
+    }
     if (path.endsWith('/calendars') && r.method == 'POST') {
       calendarExists = true;
+      ghost = false;
       calendarsCreated++;
       title = (jsonDecode(r.body) as Map)['summary'] as String?;
       return ok({'id': 'cal1', 'summary': title});
@@ -154,6 +165,20 @@ void main() {
     expect(server.calendarsCreated, 2);
     expect(server.events, isNotEmpty);
   });
+
+  test(
+    'a calendar gone from the list counts as missing even if get answers',
+    () async {
+      final b = baby();
+      await service.sync(b, now, {});
+      server.ghost = true;
+      final check = await service.check(baby(calendarId: 'cal1'), now);
+      expect(check.state, CalendarState.missing);
+      // and syncing makes a new one instead of writing into the ghost
+      await service.sync(baby(calendarId: 'cal1'), now, {});
+      expect(server.calendarsCreated, 2);
+    },
+  );
 
   test('event ids only use characters Google accepts', () {
     final id = GoogleCalendarReminders.eventId(

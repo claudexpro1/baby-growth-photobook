@@ -121,6 +121,16 @@ class GoogleCalendarReminders {
       ? planReminders(baby, now, photoDates: photoDates, max: windowSize).length
       : 0;
 
+  /// Is the calendar still in the user's calendar list? A calendar deleted by
+  /// hand can keep answering `calendars.get` and `events.list` for a while,
+  /// but it is gone from the list. Throws a 404 when it is gone.
+  Future<void> _requireInList(cal.CalendarApi api, String id) async {
+    final entry = await api.calendarList.get(id);
+    if (entry.deleted == true) {
+      throw cal.DetailedApiRequestError(404, 'Calendar was deleted');
+    }
+  }
+
   /// Looks in Google Calendar: does the baby's calendar still exist, and how
   /// many upcoming reminders does it hold? Never creates anything. Throws
   /// [CalendarNotConnected] when [prompt] is false and Google needs a tap.
@@ -134,6 +144,7 @@ class GoogleCalendarReminders {
     var count = 0;
     DateTime? next;
     try {
+      await _requireInList(api, id);
       await api.calendars.get(id);
       String? token;
       do {
@@ -183,6 +194,7 @@ class GoogleCalendarReminders {
     final existing = baby.googleCalendarId;
     if (existing != null) {
       try {
+        await _requireInList(api, existing);
         final c = await api.calendars.get(existing);
         // A calendar deleted by hand can still answer `get`; its events cannot.
         await api.events.list(existing, maxResults: 1);
