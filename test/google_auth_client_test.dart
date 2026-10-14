@@ -24,7 +24,7 @@ void main() {
     expect(seen, ['Bearer t1', 'Bearer t2']);
   });
 
-  test('if no fresh token can be had, the original 401 comes back', () async {
+  test('if no fresh token can be had, it says so', () async {
     var tokens = 0;
     final client = GoogleAuthClient(
       () async {
@@ -36,10 +36,39 @@ void main() {
         (r) async => http.Response('{"error":"Invalid Credentials"}', 401),
       ),
     );
-    final res = await client.get(Uri.parse('https://x.test/a'));
-    expect(res.statusCode, 401);
-    expect(res.body, contains('Invalid Credentials'));
+    expect(
+      client.get(Uri.parse('https://x.test/a')),
+      throwsA(isA<GoogleReauthFailed>()),
+    );
   });
+
+  test(
+    'token check: refused tokens are stale, doubt counts as valid',
+    () async {
+      http.Client answers(int code) => MockClient((r) async {
+        expect(r.url.host, 'oauth2.googleapis.com');
+        return http.Response('{}', code);
+      });
+      expect(
+        await GoogleAuth.tokenStillWorks('t', client: answers(200)),
+        isTrue,
+      );
+      expect(
+        await GoogleAuth.tokenStillWorks('t', client: answers(400)),
+        isFalse,
+      );
+      expect(
+        await GoogleAuth.tokenStillWorks('t', client: answers(401)),
+        isFalse,
+      );
+      expect(
+        await GoogleAuth.tokenStillWorks('t', client: answers(500)),
+        isTrue,
+      );
+      final broken = MockClient((r) async => throw Exception('offline'));
+      expect(await GoogleAuth.tokenStillWorks('t', client: broken), isTrue);
+    },
+  );
 
   test('other answers pass through untouched', () async {
     var calls = 0;

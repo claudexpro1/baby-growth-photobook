@@ -283,6 +283,12 @@ String calendarErrorMessage(Object e) {
     return 'Google Calendar only holds ${e.found} of ${e.expected} reminders. '
         'Tap again; if it stays this way, check the "Baby Photobook" calendar is ticked in Google Calendar.';
   }
+  if (e is GoogleReauthFailed) {
+    return e.cause is CalendarNotConnected || e.cause is GoogleSignInException
+        ? calendarErrorMessage(e.cause)
+        : 'Google no longer accepts the saved sign-in and a new one could not '
+              'be started (${e.cause}). Allow pop-ups for this site, then tap again.';
+  }
   if (e is CalendarNotConnected) {
     return 'Google Calendar is not allowed yet. Tap again and allow Calendar access.';
   }

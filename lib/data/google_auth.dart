@@ -25,9 +25,40 @@ class GoogleAuth {
       );
 
   /// Shows Google's permission screen for [scopes] (needs a user tap on web).
+  /// A remembered token that Google no longer accepts (expired early, or the
+  /// app's access was removed) is dropped first, so the window opens right
+  /// now, inside the tap, instead of failing later.
   static Future<void> authorize(List<String> scopes) async {
     await ensureInit();
-    await GoogleSignIn.instance.authorizationClient.authorizeScopes(scopes);
+    final client = GoogleSignIn.instance.authorizationClient;
+    final cached = await client.authorizationHeaders(
+      scopes,
+      promptIfNecessary: false,
+    );
+    final token = cached?['Authorization']?.replaceFirst('Bearer ', '');
+    if (token != null && !await tokenStillWorks(token)) {
+      await forget(token);
+    }
+    await client.authorizeScopes(scopes);
+  }
+
+  /// Asks Google whether [token] is still valid. Anything unclear counts as
+  /// valid, so a network hiccup never forces a new sign-in.
+  static Future<bool> tokenStillWorks(
+    String token, {
+    http.Client? client,
+  }) async {
+    final c = client ?? http.Client();
+    try {
+      final r = await c.get(
+        Uri.https('oauth2.googleapis.com', '/tokeninfo', {
+          'access_token': token,
+        }),
+      );
+      return r.statusCode != 400 && r.statusCode != 401;
+    } catch (_) {
+      return true;
+    }
   }
 
   /// Drops a token Google refused, so the next request asks for a new one.
@@ -50,6 +81,14 @@ class GoogleAuth {
       promptIfNecessary: prompt,
     );
   }
+}
+
+/// Google refused the saved sign-in and a new one could not be started.
+class GoogleReauthFailed implements Exception {
+  const GoogleReauthFailed(this.cause);
+  final Object cause;
+  @override
+  String toString() => 'GoogleReauthFailed($cause)';
 }
 
 /// HTTP client that adds the user's Google authorization to every request.
@@ -100,8 +139,8 @@ class GoogleAuthClient extends http.BaseClient {
         ..headers.addAll(fresh)
         ..bodyBytes = request.bodyBytes;
       return await _inner.send(retry);
-    } catch (_) {
-      return again(); // not allowed to ask now: report the original 401
+    } catch (e) {
+      throw GoogleReauthFailed(e);
     }
   }
 }
