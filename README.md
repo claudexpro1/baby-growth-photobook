@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-14: Settings: with unsaved edits the calendar box offers "Save and update calendar" (saves first, then updates Google Calendar). The box also says how far ahead the calendar is filled ("Reminders are in Calendar until ...")
 - 2026-10-14: Saving Settings now updates the baby's Google Calendar right away (a schedule change used to leave the calendar on the old plan); the calendar box asks you to Save first when there are unsaved edits
 - 2026-10-14: A calendar deleted by hand in Google Calendar is now detected (the app checks your calendar list, not only the calendar itself), so it shows "Calendar missing" and "Fix it" recreates it
 - 2026-10-14: On wide screens the Drive consent and share-link sheets open as a centred dialog instead of a phone-style bottom sheet

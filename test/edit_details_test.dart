@@ -159,7 +159,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextField, 'Anna'), 'Anni');
     await tester.pump();
     // unsaved edits: the box asks for Save first
-    expect(find.textContaining('Tap Save'), findsOneWidget);
+    expect(find.textContaining('until you save'), findsOneWidget);
     await tester.tap(find.text('Save'));
     await tester.runAsync(
       () => Future.delayed(const Duration(milliseconds: 300)),
@@ -169,5 +169,41 @@ void main() {
     expect(server.title, 'Baby Photobook - Anni');
     expect(server.events, isNotEmpty);
     expect(find.textContaining('Done:'), findsOneWidget);
+  });
+
+  testWidgets('Save and update calendar saves the edits first and stays', (
+    tester,
+  ) async {
+    final server = FakeCalendarServer()
+      ..calendarExists = true
+      ..title = 'Baby Photobook - Anna';
+    useGoogleCalendar = true;
+    GoogleCalendarReminders.instance.apiFactory = ({required bool prompt}) =>
+        cal.CalendarApi(MockClient((r) => server.handle(r)));
+    addTearDown(() {
+      useGoogleCalendar = false;
+      GoogleCalendarReminders.instance.apiFactory = null;
+    });
+    final linked = baby.copyWith(
+      googleCalendarId: 'cal1',
+      reminder: const ReminderSettings(enabled: true),
+    );
+    final (repo, _) = await open(tester, start: linked);
+    expect(find.text('Save and update calendar'), findsNothing);
+    await tester.enterText(find.widgetWithText(TextField, 'Anna'), 'Anni');
+    await tester.pump();
+    await tester.tap(find.text('Save and update calendar'));
+    await tester.runAsync(
+      () => Future.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pumpAndSettle();
+    expect(repo.data.single.name, 'Anni');
+    expect(server.title, 'Baby Photobook - Anni');
+    expect(find.byType(EditBabyPage), findsOneWidget); // still here
+    expect(find.text('Save and update calendar'), findsNothing); // saved now
+    expect(
+      find.textContaining('Reminders are in Calendar until'),
+      findsOneWidget,
+    );
   });
 }

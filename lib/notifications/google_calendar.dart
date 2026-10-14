@@ -143,6 +143,7 @@ class GoogleCalendarReminders {
     final api = _api(prompt: prompt);
     var count = 0;
     DateTime? next;
+    DateTime? last;
     try {
       await _requireInList(api, id);
       await api.calendars.get(id);
@@ -162,6 +163,9 @@ class GoogleCalendarReminders {
           if (start != null && (next == null || start.isBefore(next))) {
             next = start;
           }
+          if (start != null && (last == null || start.isAfter(last))) {
+            last = start;
+          }
         }
         token = page.nextPageToken;
       } while (token != null);
@@ -179,6 +183,7 @@ class GoogleCalendarReminders {
       checkedAt: now,
       count: count,
       next: next,
+      lastReminder: last,
     );
   }
 

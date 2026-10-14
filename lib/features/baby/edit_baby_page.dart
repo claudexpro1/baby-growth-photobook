@@ -88,7 +88,9 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   bool get _dirty =>
       jsonEncode(_draft().toJson()) != jsonEncode(_current.toJson());
 
-  Future<void> _save() async {
+  /// [updateCalendar] also fills Google Calendar when the baby has none yet;
+  /// [stay] keeps the page open (used by the calendar box).
+  Future<void> _save({bool updateCalendar = false, bool stay = false}) async {
     final err = _name.text.trim().isEmpty
         ? "Please enter your baby's name."
         : validatePhases(_birth, _phases, finish: _finish);
@@ -114,7 +116,9 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
     if (!mounted) return;
     var message = 'Saved. ${_name.text.trim()}\'s details are updated.';
     final saved = _current;
-    if (useGoogleCalendar && saved.googleCalendarId != null) {
+    if (useGoogleCalendar &&
+        (saved.googleCalendarId != null ||
+            (updateCalendar && saved.reminder.enabled))) {
       // Save is a tap, so Google may ask for permission here. Silent syncing
       // after a save often cannot, which left the calendar on the old plan.
       setState(() => _saving = true);
@@ -123,7 +127,14 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
       message = '$message ${r.message}';
     }
     final messenger = ScaffoldMessenger.of(context);
-    Navigator.pop(context);
+    if (stay) {
+      setState(() {
+        _saving = false;
+        _baby = _current; // later edits compare against what is saved now
+      });
+    } else {
+      Navigator.pop(context);
+    }
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
@@ -309,6 +320,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
               babyId: widget.babyId,
               enabled: _reminder.enabled,
               unsaved: _dirty,
+              onSaveAndUpdate: () => _save(updateCalendar: true, stay: true),
             ),
             if (_error != null)
               Text(

@@ -6,6 +6,7 @@ import '../../domain/baby.dart';
 import '../../notifications/google_calendar.dart';
 import 'calendar_actions.dart';
 import '../../notifications/calendar_status.dart';
+import '../../notifications/reminder_planner.dart';
 import '../../notifications/reminder_service.dart';
 
 /// Tells the parent, in words, whether reminders will actually reach them on
@@ -16,12 +17,16 @@ class ReminderStatus extends ConsumerStatefulWidget {
     required this.babyId,
     required this.enabled,
     this.unsaved = false,
+    this.onSaveAndUpdate,
   });
   final String babyId;
 
   /// Settings were changed here but not saved yet: the calendar would still
   /// get the old schedule, so updating waits for Save.
   final bool unsaved;
+
+  /// Saves the page's edits and then updates the calendar (Settings only).
+  final Future<void> Function()? onSaveAndUpdate;
 
   /// The reminder switch as currently shown (may not be saved yet).
   final bool enabled;
@@ -112,6 +117,24 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
     await ReminderService.instance.sendTest(name);
   }
 
+  /// Says how far ahead the calendar is filled, and what happens after.
+  String _coverage(Baby baby, CalendarCheck last) {
+    final until = MaterialLocalizations.of(context)
+        .formatMediumDate(last.lastReminder!);
+    final more =
+        planReminders(
+          baby,
+          DateTime.now(),
+          photoDates: {},
+          max: GoogleCalendarReminders.windowSize + 1,
+        ).length >
+        GoogleCalendarReminders.windowSize;
+    return more
+        ? 'Reminders are in Calendar until $until. More are added when you '
+              'open the app (Google may ask you to tap Update calendar).'
+        : 'Reminders are in Calendar until $until, the finish line.';
+  }
+
   String _ago(DateTime t) {
     final d = DateTime.now().difference(t);
     if (d.inMinutes < 1) return 'just now';
@@ -155,6 +178,7 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
         badge.detail,
         if (good && last?.next != null)
           'Next reminder: ${_when(context, last!.next!)}.',
+        if (good && last?.lastReminder != null) _coverage(baby, last!),
         if (good)
           'Google Calendar notifies you on every device where it is installed.',
         if (badge.tone == BadgeTone.bad)
@@ -165,31 +189,45 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
       ];
       text = lines.join('\n');
       final fix = badge.tone == BadgeTone.bad;
-      action = Wrap(
-        alignment: WrapAlignment.end,
-        spacing: 8,
-        children: [
-          if (baby.googleCalendarId != null)
-            TextButton(
-              onPressed: () => openInGoogleCalendar(baby),
-              child: const Text('Open in Google Calendar'),
-            ),
-          if (baby.googleCalendarId != null && badge.tone != BadgeTone.bad)
-            TextButton(
-              onPressed: _busy || _checking ? null : () => _check(prompt: true),
-              child: const Text('Check now'),
-            ),
-          fix || baby.googleCalendarId == null
-              ? FilledButton.tonal(
-                  onPressed: _busy || widget.unsaved ? null : _addToCalendar,
-                  child: Text(fix ? 'Fix it' : 'Add to Google Calendar'),
-                )
-              : TextButton(
-                  onPressed: _busy || widget.unsaved ? null : _addToCalendar,
-                  child: const Text('Update calendar'),
-                ),
-        ],
-      );
+      final saveFirst = widget.unsaved && widget.onSaveAndUpdate != null;
+      action = saveFirst
+          ? FilledButton.icon(
+              onPressed: _busy ? null : widget.onSaveAndUpdate,
+              icon: const Icon(Icons.event_repeat),
+              label: const Text('Save and update calendar'),
+            )
+          : Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              children: [
+                if (baby.googleCalendarId != null)
+                  TextButton(
+                    onPressed: () => openInGoogleCalendar(baby),
+                    child: const Text('Open in Google Calendar'),
+                  ),
+                if (baby.googleCalendarId != null &&
+                    badge.tone != BadgeTone.bad)
+                  TextButton(
+                    onPressed: _busy || _checking
+                        ? null
+                        : () => _check(prompt: true),
+                    child: const Text('Check now'),
+                  ),
+                fix || baby.googleCalendarId == null
+                    ? FilledButton.tonal(
+                        onPressed: _busy || widget.unsaved
+                            ? null
+                            : _addToCalendar,
+                        child: Text(fix ? 'Fix it' : 'Add to Google Calendar'),
+                      )
+                    : TextButton(
+                        onPressed: _busy || widget.unsaved
+                            ? null
+                            : _addToCalendar,
+                        child: const Text('Update calendar'),
+                      ),
+              ],
+            );
     } else if (_allowed == null) {
       icon = Icons.notifications_none;
       text = 'Checking notifications...';
@@ -230,8 +268,8 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
               const Padding(
                 padding: EdgeInsets.only(top: 8),
                 child: Text(
-                  'You changed something here. Tap Save: Google Calendar then '
-                  'updates by itself.',
+                  'You changed something here. Calendar still has the old '
+                  'settings until you save.',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),

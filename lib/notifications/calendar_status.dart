@@ -20,6 +20,7 @@ class CalendarCheck {
     required this.checkedAt,
     this.count = 0,
     this.next,
+    this.lastReminder,
   });
 
   final CalendarState state;
@@ -32,6 +33,9 @@ class CalendarCheck {
   /// When the next reminder fires.
   final DateTime? next;
 
+  /// When the last reminder now in the calendar fires.
+  final DateTime? lastReminder;
+
   bool get exists => state == CalendarState.ok;
 
   Map<String, dynamic> toJson() => {
@@ -40,6 +44,7 @@ class CalendarCheck {
     'checkedAt': checkedAt.toIso8601String(),
     'count': count,
     if (next != null) 'next': next!.toIso8601String(),
+    if (lastReminder != null) 'last': lastReminder!.toIso8601String(),
   };
 
   factory CalendarCheck.fromJson(Map<String, dynamic> j) => CalendarCheck(
@@ -48,6 +53,9 @@ class CalendarCheck {
     checkedAt: DateTime.parse(j['checkedAt'] as String),
     count: j['count'] as int? ?? 0,
     next: j['next'] == null ? null : DateTime.parse(j['next'] as String),
+    lastReminder: j['last'] == null
+        ? null
+        : DateTime.parse(j['last'] as String),
   );
 
   static Map<String, CalendarCheck> decodeAll(String source) {
