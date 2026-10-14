@@ -82,6 +82,24 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
     return fresh.length;
   }
 
+  /// Logs out: signs out of Google and clears this device's copy of the babies
+  /// and photos. Nothing in Google Drive or Google Calendar is touched, and
+  /// "I already registered my baby" brings everything back after logging in.
+  Future<void> logOut() async {
+    try {
+      await ref.read(cloudProvider).signOut();
+    } catch (_) {
+      /* not signed in */
+    }
+    final store = await ref.read(localStoreProvider.future);
+    await store.deletePrefix('');
+    state = const AsyncData(<Baby>[]);
+    ref.invalidate(photoLibraryProvider);
+    ref.invalidate(photosProvider);
+    ref.invalidate(calendarStatusProvider);
+    unawaited(reschedule()); // cancels this device's reminders
+  }
+
   /// Removes the profile and the photos cached on this phone. Photos already in
   /// the user's cloud folder are left untouched.
   ///

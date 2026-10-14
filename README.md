@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-14: Log out (menu on the main page): signs out of Google and clears this device's copy; Drive photos and Calendar reminders stay, and "I already registered my baby" brings everything back. Blocked while photos exist only on this device or are not uploaded yet
 - 2026-10-14: An expired or refused Google sign-in token (401) is now renewed automatically and the request retried once, for Drive and Calendar, instead of asking for a second tap
 - 2026-10-14: Settings: with unsaved edits the calendar box offers "Save and update calendar" (saves first, then updates Google Calendar). The box also says how far ahead the calendar is filled ("Reminders are in Calendar until ...")
 - 2026-10-14: Saving Settings now updates the baby's Google Calendar right away (a schedule change used to leave the calendar on the old plan); the calendar box asks you to Save first when there are unsaved edits

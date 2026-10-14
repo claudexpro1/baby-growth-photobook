@@ -128,6 +128,60 @@ class _HomePageState extends ConsumerState<HomePage> {
     ).catchError((_) => false);
   }
 
+  Future<void> _logOut() async {
+    final babies = ref.read(babiesProvider).value ?? [];
+    final local = [
+      for (final b in babies)
+        if (b.storage != StorageMode.googleDrive) b.name,
+    ];
+    final waiting = <String>[];
+    for (final b in babies.where((b) => b.storage == StorageMode.googleDrive)) {
+      final n = (ref.read(photosProvider(b.id)).value ?? [])
+          .where((p) => !p.synced)
+          .length;
+      if (n > 0) waiting.add('${b.name} ($n)');
+    }
+    final blocked = local.isNotEmpty || waiting.isNotEmpty;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(blocked ? 'Not yet' : 'Log out?'),
+        content: Text(
+          blocked
+              ? [
+                  if (local.isNotEmpty)
+                    'These babies are only kept on this device, so logging out '
+                        'would lose them: ${local.join(', ')}. Connect Google Drive for them first.',
+                  if (waiting.isNotEmpty)
+                    'Not uploaded to Drive yet: ${waiting.join(', ')}. Wait '
+                        'for the upload, then log out.',
+                ].join('\n\n')
+              : 'You are signed out of Google and this device forgets your babies '
+                    'and photos.\n\nNothing is deleted: your photos stay in your '
+                    'Google Drive and your reminders stay in your Google Calendar. '
+                    'To get everything back, log in again with "I already '
+                    'registered my baby".',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(blocked ? 'OK' : 'Cancel'),
+          ),
+          if (!blocked)
+            FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Log out'),
+            ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(babiesProvider.notifier).logOut();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('You are logged out.')));
+  }
+
   Future<void> _deleteAll() async {
     final babies = ref.read(babiesProvider).value ?? [];
     final waiting = <String>[];
@@ -206,6 +260,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 PopupMenuButton<String>(
                   onSelected: (v) => switch (v) {
                     'restore' => _restore(),
+                    'logout' => _logOut(),
                     'disconnect' => _disconnectDrive(),
                     _ => _deleteAll(),
                   },
@@ -214,6 +269,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                       value: 'restore',
                       enabled: !_restoring,
                       child: const Text('Bring back babies from Google Drive'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'logout',
+                      child: Text('Log out'),
                     ),
                     const PopupMenuItem(
                       value: 'disconnect',
