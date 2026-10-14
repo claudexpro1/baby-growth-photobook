@@ -6,11 +6,16 @@ import 'package:baby_growth_photobook/data/providers.dart';
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/domain/schedule.dart';
 import 'package:baby_growth_photobook/features/baby/edit_baby_page.dart';
+import 'package:baby_growth_photobook/notifications/calendar_status.dart';
+import 'package:baby_growth_photobook/notifications/google_calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:googleapis/calendar/v3.dart' as cal;
+import 'package:http/testing.dart';
 
 import 'app_flow_test.dart' show MemoryRepository;
+import 'google_calendar_test.dart' show FakeCalendarServer;
 
 class _Gate extends ConsumerWidget {
   const _Gate();
@@ -35,9 +40,10 @@ void main() {
   Future<(MemoryRepository, ProviderContainer)> open(
     WidgetTester tester, {
     bool oldPhoto = false,
+    Baby? start,
   }) async {
     await tester.binding.setSurfaceSize(const Size(420, 3000));
-    final repo = MemoryRepository()..data = [baby];
+    final repo = MemoryRepository()..data = [start ?? baby];
     final store = MemoryStore();
     if (oldPhoto) {
       await tester.runAsync(
@@ -132,5 +138,36 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(repo.data.single.birth, DateTime(2026, 10, 8, 8, 30));
+  });
+
+  testWidgets('Save also updates the linked Google Calendar', (tester) async {
+    final server = FakeCalendarServer()
+      ..calendarExists = true
+      ..title = 'Baby Photobook - Anna';
+    useGoogleCalendar = true;
+    GoogleCalendarReminders.instance.apiFactory = ({required bool prompt}) =>
+        cal.CalendarApi(MockClient((r) => server.handle(r)));
+    addTearDown(() {
+      useGoogleCalendar = false;
+      GoogleCalendarReminders.instance.apiFactory = null;
+    });
+    final linked = baby.copyWith(
+      googleCalendarId: 'cal1',
+      reminder: const ReminderSettings(enabled: true),
+    );
+    final (repo, _) = await open(tester, start: linked);
+    await tester.enterText(find.widgetWithText(TextField, 'Anna'), 'Anni');
+    await tester.pump();
+    // unsaved edits: the box asks for Save first
+    expect(find.textContaining('Tap Save'), findsOneWidget);
+    await tester.tap(find.text('Save'));
+    await tester.runAsync(
+      () => Future.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pumpAndSettle();
+    expect(repo.data.single.name, 'Anni');
+    expect(server.title, 'Baby Photobook - Anni');
+    expect(server.events, isNotEmpty);
+    expect(find.textContaining('Done:'), findsOneWidget);
   });
 }

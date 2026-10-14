@@ -1,11 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
+import '../../notifications/calendar_status.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
 import '../common/baby_details_form.dart';
+import '../common/calendar_actions.dart';
 import '../common/reminder_status.dart';
 import '../common/schedule_editor.dart';
 
@@ -29,6 +33,7 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   late ReminderSettings _reminder;
   late Gender _gender;
   String? _error;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -39,6 +44,8 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
         .firstWhere((b) => b.id == widget.babyId);
     _name = TextEditingController(text: _baby.name);
     _place = TextEditingController(text: _baby.birthPlace);
+    _name.addListener(() => setState(() {}));
+    _place.addListener(() => setState(() {}));
     _birthDate = DateTime(_baby.birth.year, _baby.birth.month, _baby.birth.day);
     _birthTime = TimeOfDay.fromDateTime(_baby.birth);
     _phases = _baby.phases.map(PhaseDraft.from).toList();
@@ -67,6 +74,20 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
       .value!
       .firstWhere((b) => b.id == widget.babyId, orElse: () => _baby);
 
+  Baby _draft() => _current.copyWith(
+    name: _name.text.trim(),
+    gender: _gender,
+    birth: _birth,
+    birthPlace: _place.text.trim(),
+    phases: _phases.map((p) => p.toPhase()).toList(),
+    end: _finish.toAge(),
+    clearEnd: !_finish.enabled,
+    reminder: _reminder,
+  );
+
+  bool get _dirty =>
+      jsonEncode(_draft().toJson()) != jsonEncode(_current.toJson());
+
   Future<void> _save() async {
     final err = _name.text.trim().isEmpty
         ? "Please enter your baby's name."
@@ -89,28 +110,21 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
         );
       }
     }
-    await ref
-        .read(babiesProvider.notifier)
-        .updateBaby(
-          _current.copyWith(
-            name: _name.text.trim(),
-            gender: _gender,
-            birth: _birth,
-            birthPlace: _place.text.trim(),
-            phases: _phases.map((p) => p.toPhase()).toList(),
-            end: _finish.toAge(),
-            clearEnd: !_finish.enabled,
-            reminder: _reminder,
-          ),
-        );
+    await ref.read(babiesProvider.notifier).updateBaby(_draft());
     if (!mounted) return;
+    var message = 'Saved. ${_name.text.trim()}\'s details are updated.';
+    final saved = _current;
+    if (useGoogleCalendar && saved.googleCalendarId != null) {
+      // Save is a tap, so Google may ask for permission here. Silent syncing
+      // after a save often cannot, which left the calendar on the old plan.
+      setState(() => _saving = true);
+      final r = await updateGoogleCalendar(ref, saved);
+      if (!mounted) return;
+      message = '$message ${r.message}';
+    }
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Saved. ${_name.text.trim()}\'s details are updated.'),
-      ),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Changing the birth moves every photo day, so ask first. Photos dated
@@ -236,7 +250,12 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Settings'),
-          actions: [TextButton(onPressed: _save, child: const Text('Save'))],
+          actions: [
+            TextButton(
+              onPressed: _saving ? null : _save,
+              child: Text(_saving ? 'Saving...' : 'Save'),
+            ),
+          ],
         ),
         body: ListView(
           padding: const EdgeInsets.all(20),
@@ -286,7 +305,11 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
               value: _reminder,
               onChanged: (r) => setState(() => _reminder = r),
             ),
-            ReminderStatus(babyId: widget.babyId, enabled: _reminder.enabled),
+            ReminderStatus(
+              babyId: widget.babyId,
+              enabled: _reminder.enabled,
+              unsaved: _dirty,
+            ),
             if (_error != null)
               Text(
                 _error!,

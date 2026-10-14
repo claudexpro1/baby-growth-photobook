@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-14: Saving Settings now updates the baby's Google Calendar right away (a schedule change used to leave the calendar on the old plan); the calendar box asks you to Save first when there are unsaved edits
 - 2026-10-14: A calendar deleted by hand in Google Calendar is now detected (the app checks your calendar list, not only the calendar itself), so it shows "Calendar missing" and "Fix it" recreates it
 - 2026-10-14: On wide screens the Drive consent and share-link sheets open as a centred dialog instead of a phone-style bottom sheet
 - 2026-10-14: Timeline shows an "Our story begins" birth card and milestone cards (1 week, 1 month, 100 days, 3 months ... each birthday)

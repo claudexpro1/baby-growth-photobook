@@ -15,8 +15,13 @@ class ReminderStatus extends ConsumerStatefulWidget {
     super.key,
     required this.babyId,
     required this.enabled,
+    this.unsaved = false,
   });
   final String babyId;
+
+  /// Settings were changed here but not saved yet: the calendar would still
+  /// get the old schedule, so updating waits for Save.
+  final bool unsaved;
 
   /// The reminder switch as currently shown (may not be saved yet).
   final bool enabled;
@@ -176,11 +181,11 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
             ),
           fix || baby.googleCalendarId == null
               ? FilledButton.tonal(
-                  onPressed: _busy ? null : _addToCalendar,
+                  onPressed: _busy || widget.unsaved ? null : _addToCalendar,
                   child: Text(fix ? 'Fix it' : 'Add to Google Calendar'),
                 )
               : TextButton(
-                  onPressed: _busy ? null : _addToCalendar,
+                  onPressed: _busy || widget.unsaved ? null : _addToCalendar,
                   child: const Text('Update calendar'),
                 ),
         ],
@@ -221,6 +226,15 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
                 Expanded(child: Text(text)),
               ],
             ),
+            if (widget.unsaved && useGoogleCalendar)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'You changed something here. Tap Save: Google Calendar then '
+                  'updates by itself.',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
             if (_busy || _checking)
               const Padding(
                 padding: EdgeInsets.only(top: 8),
