@@ -29,7 +29,9 @@ void main() {
     'onboarding: Drive asks for consent first; Not now signs in nothing',
     (tester) async {
       final cloud = _SignedOutCloud();
-      await tester.binding.setSurfaceSize(const Size(400, 900));
+      tester.view.physicalSize = const Size(400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [

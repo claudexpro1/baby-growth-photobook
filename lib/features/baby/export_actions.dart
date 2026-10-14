@@ -8,6 +8,7 @@ import '../../data/photo_sync.dart';
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../export/photobook_pdf.dart';
+import '../common/adaptive_sheet.dart';
 
 /// File name that keeps letters from any alphabet (e.g. Greek) and falls back
 /// to the baby's id if nothing is left.
@@ -79,10 +80,8 @@ Future<void> showShareLinkSheet(
   Baby baby,
   List<PhotoEntry> photos,
 ) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  return showAdaptiveSheet<void>(
+    context,
     builder: (_) => _ShareLinkSheet(babyId: baby.id, photos: photos),
   );
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'adaptive_sheet.dart';
+
 /// Plain-language explanation shown before the Google sign-in. Keep this in
 /// step with docs/PRIVACY_POLICY.md ("Google Drive").
 const driveConsentPoints = <(IconData, String)>[
@@ -29,10 +31,8 @@ const driveConsentPoints = <(IconData, String)>[
 /// Asks the parent to read what connecting Drive means. Returns true on
 /// "Continue", false on "Not now" or dismissal.
 Future<bool> showDriveConsent(BuildContext context) async {
-  final ok = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
+  final ok = await showAdaptiveSheet<bool>(
+    context,
     builder: (c) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
