@@ -303,6 +303,9 @@ String calendarErrorMessage(Object e) {
   }
   if (e is GoogleSignInException) {
     return switch (e.code) {
+      GoogleSignInExceptionCode.uiUnavailable =>
+        "Your browser blocked Google's sign-in window. Allow pop-ups for this site "
+            '(look for the blocked-pop-up icon at the right end of the address bar), then tap again.',
       GoogleSignInExceptionCode.canceled => "The Google window was closed before you allowed Calendar access. Tap again and choose Allow.",
       GoogleSignInExceptionCode.clientConfigurationError ||
       GoogleSignInExceptionCode.providerConfigurationError =>

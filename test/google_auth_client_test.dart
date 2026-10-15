@@ -21,6 +21,10 @@ void main() {
     final res = await client.post(Uri.parse('https://x.test/a'), body: 'hello');
     expect(res.statusCode, 200);
     expect(forgotten, ['t1']);
+    expect(
+      GoogleAuth.tokenRefused,
+      isTrue,
+    ); // next tap starts with a clean token
     expect(seen, ['Bearer t1', 'Bearer t2']);
   });
 
@@ -41,34 +45,6 @@ void main() {
       throwsA(isA<GoogleReauthFailed>()),
     );
   });
-
-  test(
-    'token check: refused tokens are stale, doubt counts as valid',
-    () async {
-      http.Client answers(int code) => MockClient((r) async {
-        expect(r.url.host, 'oauth2.googleapis.com');
-        return http.Response('{}', code);
-      });
-      expect(
-        await GoogleAuth.tokenStillWorks('t', client: answers(200)),
-        isTrue,
-      );
-      expect(
-        await GoogleAuth.tokenStillWorks('t', client: answers(400)),
-        isFalse,
-      );
-      expect(
-        await GoogleAuth.tokenStillWorks('t', client: answers(401)),
-        isFalse,
-      );
-      expect(
-        await GoogleAuth.tokenStillWorks('t', client: answers(500)),
-        isTrue,
-      );
-      final broken = MockClient((r) async => throw Exception('offline'));
-      expect(await GoogleAuth.tokenStillWorks('t', client: broken), isTrue);
-    },
-  );
 
   test('other answers pass through untouched', () async {
     var calls = 0;

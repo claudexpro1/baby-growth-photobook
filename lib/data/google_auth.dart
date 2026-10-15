@@ -27,41 +27,26 @@ class GoogleAuth {
             : (_iosClientId.isEmpty ? null : _iosClientId),
       );
 
+  /// Set when Google refused a token; the next [authorize] then drops the
+  /// remembered token first.
+  static bool tokenRefused = false;
+
   /// Shows Google's permission screen for [scopes] (needs a user tap on web).
-  /// A remembered token that Google no longer accepts (expired early, or the
-  /// app's access was removed) is dropped first, so the window opens right
-  /// now, inside the tap, instead of failing later.
+  /// The window must open straight away, inside the tap: browsers block a
+  /// pop-up that opens after a network wait. So nothing slow happens here.
   static Future<void> authorize(List<String> scopes) async {
     await ensureInit();
     final client = GoogleSignIn.instance.authorizationClient;
-    final cached = await client.authorizationHeaders(
-      scopes,
-      promptIfNecessary: false,
-    );
-    final token = cached?['Authorization']?.replaceFirst('Bearer ', '');
-    if (token != null && !await tokenStillWorks(token)) {
-      await forget(token);
+    if (tokenRefused) {
+      final cached = await client.authorizationHeaders(
+        scopes,
+        promptIfNecessary: false,
+      );
+      final token = cached?['Authorization']?.replaceFirst('Bearer ', '');
+      if (token != null) await forget(token);
     }
     await client.authorizeScopes(scopes);
-  }
-
-  /// Asks Google whether [token] is still valid. Anything unclear counts as
-  /// valid, so a network hiccup never forces a new sign-in.
-  static Future<bool> tokenStillWorks(
-    String token, {
-    http.Client? client,
-  }) async {
-    final c = client ?? http.Client();
-    try {
-      final r = await c.get(
-        Uri.https('oauth2.googleapis.com', '/tokeninfo', {
-          'access_token': token,
-        }),
-      );
-      return r.statusCode != 400 && r.statusCode != 401;
-    } catch (_) {
-      return true;
-    }
+    tokenRefused = false;
   }
 
   /// Drops a token Google refused, so the next request asks for a new one.
@@ -127,6 +112,7 @@ class GoogleAuthClient extends http.BaseClient {
       reasonPhrase: res.reasonPhrase,
     );
 
+    GoogleAuth.tokenRefused = true;
     final stale = first['Authorization']?.replaceFirst('Bearer ', '');
     if (stale != null) {
       try {

@@ -5,6 +5,7 @@ import 'package:baby_growth_photobook/domain/schedule.dart';
 import 'package:baby_growth_photobook/notifications/google_calendar.dart';
 import 'package:baby_growth_photobook/notifications/calendar_status.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/calendar/v3.dart' as cal;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -217,4 +218,14 @@ void main() {
       expect(gone.state, CalendarState.missing);
     },
   );
+
+  test('a blocked sign-in window is explained in plain words', () {
+    final msg = calendarErrorMessage(
+      const GoogleSignInException(
+        code: GoogleSignInExceptionCode.uiUnavailable,
+      ),
+    );
+    expect(msg, contains('blocked'));
+    expect(msg, contains('pop-ups'));
+  });
 }
