@@ -64,7 +64,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             : null;
       case 1:
         return _storage == null
-            ? 'Please choose where to keep the photos.'
+            ? 'Please connect Google Drive to continue. The app needs a Google '
+                  'account to keep your photos.'
             : null;
       case 2:
         return validatePhases(_birth, _phases, finish: _finish);
@@ -131,44 +132,19 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     } catch (_) {
       if (!mounted) return;
       setState(
-        () => _error = 'We could not connect to Google Drive. Please try again, or keep photos in the app for now.',
+        () =>
+            _error = 'We could not connect to Google Drive. Please try again.',
       );
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
   }
 
-  Future<void> _chooseAppOnly() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Keep photos only in the app?'),
-        content: const Text(
-          'Your photos will live only inside this app, on this phone. '
-          'If the phone is lost or reset, or the app is deleted, the photos are gone.\n\n'
-          'Google Drive keeps them safe in your own account. You can connect it later in settings.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Go back'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Keep in the app only'),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) setState(() => _storage = StorageMode.appOnly);
-  }
-
   @override
   Widget build(BuildContext context) {
     final titles = [
       'About your baby',
-      'Where should photos live?',
+      'Connect Google Drive',
       'How often?',
       'Reminders',
     ];
@@ -272,69 +248,67 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   );
 
   Widget _storageStep() {
-    Widget option(
-      String title,
-      String sub,
-      IconData icon,
-      bool selected,
-      VoidCallback? onTap, {
-      Widget? trailing,
-    }) => Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          width: selected ? 2 : 1,
-          color: selected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.outlineVariant,
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: Icon(icon, size: 30),
-        title: Text(title),
-        subtitle: Text(sub),
-        trailing:
-            trailing ?? (selected ? const Icon(Icons.check_circle) : null),
-        onTap: onTap,
-      ),
-    );
+    final scheme = Theme.of(context).colorScheme;
+    final connected = _storage == StorageMode.googleDrive;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Card(
+          margin: EdgeInsets.zero,
+          color: scheme.primaryContainer.withValues(alpha: 0.5),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Baby Photobook needs a Google account. Your photos are '
+                    'saved in your own Google Drive, and reminders go into your '
+                    'own Google Calendar. Without connecting Google Drive the '
+                    'app cannot keep your photos, so it cannot be used.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
         const Text(
           'Your photos go straight into your own account. '
           'There is no server of ours in between, so nobody else can see them.',
         ),
-        const SizedBox(height: 12),
-        option(
-          'Google Drive',
-          'Recommended. Saved in "BabyPhotobook" in your Drive.',
-          Icons.cloud_outlined,
-          _storage == StorageMode.googleDrive,
-          _connecting ? null : _chooseDrive,
-          trailing: _connecting
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : null,
-        ),
-        option(
-          'iCloud Drive',
-          'Coming soon',
-          Icons.cloud_circle_outlined,
-          false,
-          null,
-        ),
-        option(
-          'Only in this app',
-          'Not recommended: lost if the phone is lost.',
-          Icons.phone_android,
-          _storage == StorageMode.appOnly,
-          _chooseAppOnly,
-        ),
+        const SizedBox(height: 20),
+        if (connected)
+          Card(
+            margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: scheme.primary, width: 2),
+            ),
+            child: const ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              leading: Icon(Icons.check_circle, size: 30),
+              title: Text('Google Drive is connected'),
+              subtitle: Text(
+                'Photos will be saved in "BabyPhotobook" in your Drive.',
+              ),
+            ),
+          )
+        else
+          FilledButton.icon(
+            onPressed: _connecting ? null : _chooseDrive,
+            icon: _connecting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.cloud_outlined),
+            label: const Text('Connect Google Drive'),
+          ),
       ],
     );
   }

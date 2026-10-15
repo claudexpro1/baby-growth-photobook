@@ -482,7 +482,7 @@ class _BabyCard extends ConsumerWidget {
                               ),
                             if (baby.storage == StorageMode.appOnly)
                               Text(
-                                'Only on this phone',
+                                'Not saved to Drive yet',
                                 style: TextStyle(
                                   color: scheme.error,
                                   fontSize: 12,

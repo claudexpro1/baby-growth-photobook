@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
 import 'app_flow_test.dart' show MemoryRepository;
+import 'photo_sync_test.dart' show FakeCloud;
 
 Future<void> _font(String family, List<String> paths) async {
   final l = FontLoader(family);
@@ -72,6 +73,7 @@ void main() {
         overrides: [
           localStoreProvider.overrideWith((_) async => store),
           babyRepositoryProvider.overrideWith((_) async => repo),
+          cloudProvider.overrideWithValue(FakeCloud()),
         ],
         child: RepaintBoundary(key: key, child: const PhotobookApp()),
       ),
@@ -90,9 +92,7 @@ void main() {
     await tester.tap(find.text('Next'));
     await settle();
     await shot('03_storage');
-    await tester.tap(find.text('Only in this app'));
-    await settle();
-    await tester.tap(find.text('Keep in the app only'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Connect Google Drive'));
     await settle();
     await tester.tap(find.text('Next'));
     await settle();

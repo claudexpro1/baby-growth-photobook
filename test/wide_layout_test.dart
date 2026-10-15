@@ -174,6 +174,7 @@ void main() {
   testWidgets('desktop start screen is a landing page', (t) async {
     await open(t, const Size(1440, 900), const HomePage(), []);
     expect(find.text('Start with your baby'), findsOneWidget);
+    expect(find.textContaining('You need a Google account'), findsOneWidget);
     expect(find.text('How it works'), findsOneWidget);
     await t.scrollUntilVisible(
       find.text('Private by design'),

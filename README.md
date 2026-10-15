@@ -20,7 +20,7 @@ Documents for review: [docs/SPEC.md](docs/SPEC.md) (product + UX), [docs/COMPLIA
 - Reminder status in each baby's settings (calendar added or not; on a phone app: notifications on or blocked, and a test reminder)
 - Slideshow of all photos; "Disconnect Google Drive" and "Delete all data on this device" in the start page menu
 - Birth date can be set up to ten months ahead (due date)
-- Photos kept only in the app if you decline Drive (with a clear warning)
+- A Google account and a connected Google Drive are required: photos are saved in your own Drive (babies created before this change can still be device-only until Drive is connected)
 
 ## Using it on a phone: the web app
 
@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-15: Google Drive is now required: onboarding no longer offers "only in this app", and the start screens say you need a Google account
 - 2026-10-15: Removed "Disconnect Google Drive" (it also cut Calendar off); Log out replaces it. The Delete-everything dialog now says it deletes the app's Google Calendars too
 - 2026-10-15: Google's sign-in window now opens straight away inside the tap (no waiting first), and a browser-blocked window is explained ("allow pop-ups for this site")
 - 2026-10-15: Fix: the calendar-list check could make Google answer "401 Invalid Credentials" and the app wrongly said the sign-in had expired; it is now optional, and a 401 names the request Google refused

@@ -617,13 +617,14 @@ class _WhereCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Your photos are only on this phone.',
+                'Your photos are only on this device.',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
               const Text(
-                'If the phone is lost or reset, they are lost too. '
-                'Connect Google Drive to keep them safe in your own account.',
+                'If this browser\'s data is cleared or the device is lost, they '
+                'are lost too. Connect Google Drive to keep them safe in your '
+                'own account.',
               ),
               const SizedBox(height: 10),
               FilledButton(

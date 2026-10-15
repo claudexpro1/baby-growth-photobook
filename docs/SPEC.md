@@ -50,6 +50,8 @@ Non-goals for v1: social features, a web viewer, AI features, editing tools, sha
 
 ### 5.1 Onboarding (built, 4 steps)
 1. **About your baby:** name, girl / boy / prefer not to say, birth date, birth time, birth place (optional).
+> Update 2026-10-15: Google Drive is now **required**. The "Only in this app" and "iCloud: Coming soon" choices are gone; this step is "Connect Google Drive" and Next stays blocked until it is connected. Older app-only babies keep their warning card until Drive is connected.
+
 2. **Where should photos live?** Three choices: Google Drive, iCloud Drive (iPhone only), or "Only in this app". Choosing app-only shows a confirm dialog: "Keep photos only in the app? They live only on this phone. If the phone is lost, reset, or the app is deleted, the photos are gone." Buttons: "Go back" / "Keep in the app only". Choosing Google Drive signs in **immediately** (Google's own consent screen, `drive.file` scope only); if it fails the parent sees a message and can try again or pick app-only. **iCloud Drive is shown greyed out as "Coming soon" and is not built.**
 3. **Photo schedule:** the parent builds phases (start age + how often). No forced defaults; one-tap presets are optional. Daily is the most often allowed.
 4. **Reminders:** on/off (the switch starts **on**), time of day (default 18:00), changeable any time in Settings. The phone's notification permission is asked when the parent taps Finish with reminders on; if refused, a note says notifications are off and the app works without them.

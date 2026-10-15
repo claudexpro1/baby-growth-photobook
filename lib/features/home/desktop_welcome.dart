@@ -179,7 +179,8 @@ class DesktopWelcome extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         const Text(
-          'No sign-up with us. Your photos stay in your own Google Drive.',
+          'You need a Google account: your photos are saved in your own Google Drive. '
+          'There is no sign-up with us.',
           style: TextStyle(fontSize: 14, color: _muted),
         ),
       ],

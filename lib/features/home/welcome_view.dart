@@ -255,6 +255,17 @@ class _WelcomeViewState extends State<WelcomeView> {
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'You need a Google account: your photos are '
+                                'saved in your own Google Drive.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  height: 1.4,
+                                  color: c.text,
+                                ),
+                              ),
                             ],
                           ),
                         ),

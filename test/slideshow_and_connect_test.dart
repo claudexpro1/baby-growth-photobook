@@ -59,14 +59,18 @@ void main() {
       await tester.enterText(find.byType(TextField).first, 'Luna');
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Google Drive'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Connect Google Drive'),
+      );
       await tester.pumpAndSettle();
       expect(find.text('Before you connect Google Drive'), findsOneWidget);
       await tester.tap(find.text('Not now'));
       await tester.pumpAndSettle();
       expect(cloud.signIns, 0);
 
-      await tester.tap(find.text('Google Drive'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Connect Google Drive'),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
