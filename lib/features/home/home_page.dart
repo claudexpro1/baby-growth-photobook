@@ -16,7 +16,6 @@ import '../common/baby_avatar.dart';
 import '../common/calendar_actions.dart';
 import '../../ui/theme.dart';
 import '../baby/baby_page.dart';
-import '../baby/edit_baby_page.dart';
 import '../../notifications/google_calendar.dart' show calendarErrorMessage;
 import '../onboarding/onboarding_page.dart';
 
@@ -386,9 +385,10 @@ class _BabyCard extends ConsumerWidget {
   /// Tapping the chip checks the calendar and shows the answer.
   Future<void> _openCalendar(BuildContext context, WidgetRef ref) async {
     if (baby.googleCalendarId == null || !baby.reminder.enabled) {
+      // The baby page shows the reminder step open, with its button.
       Navigator.of(
         context,
-      ).push(MaterialPageRoute(builder: (_) => EditBabyPage(babyId: baby.id)));
+      ).push(MaterialPageRoute(builder: (_) => BabyPage(babyId: baby.id)));
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
