@@ -4,7 +4,11 @@ import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/domain/schedule.dart';
 import 'package:baby_growth_photobook/features/baby/baby_page.dart';
 import 'package:baby_growth_photobook/features/home/home_page.dart';
+
+import 'package:baby_growth_photobook/data/photo_library.dart';
+import 'package:baby_growth_photobook/features/baby/photo_viewer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,6 +21,79 @@ Baby _baby(String id, String name) => Baby(
   birth: DateTime.now().subtract(const Duration(days: 40)),
   phases: const [Phase(start: Age.birth, frequency: Frequency.weekly)],
 );
+
+/// A real 1x1 PNG.
+final _png = Uint8List.fromList(const [
+  137,
+  80,
+  78,
+  71,
+  13,
+  10,
+  26,
+  10,
+  0,
+  0,
+  0,
+  13,
+  73,
+  72,
+  68,
+  82,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  1,
+  8,
+  6,
+  0,
+  0,
+  0,
+  31,
+  21,
+  196,
+  137,
+  0,
+  0,
+  0,
+  13,
+  73,
+  68,
+  65,
+  84,
+  120,
+  156,
+  99,
+  248,
+  255,
+  255,
+  63,
+  0,
+  5,
+  254,
+  2,
+  254,
+  167,
+  53,
+  129,
+  132,
+  0,
+  0,
+  0,
+  0,
+  73,
+  69,
+  78,
+  68,
+  174,
+  66,
+  96,
+  130,
+]);
 
 void main() {
   Future<void> open(
@@ -106,4 +183,43 @@ void main() {
     expect(find.text('Private by design'), findsOneWidget);
     expect(find.text('Privacy policy'), findsOneWidget);
   });
+
+  testWidgets(
+    'desktop photo viewer: arrow buttons and keys move between photos',
+    (t) async {
+      final store = MemoryStore();
+      final lib = PhotoLibrary(store, 'photos/a');
+      await t.runAsync(() async {
+        await lib.add(_png, DateTime(2026, 10, 1));
+        await lib.add(_png, DateTime(2026, 10, 8));
+      });
+      t.view.physicalSize = const Size(1440, 900);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.reset);
+      final repo = MemoryRepository()
+        ..data = [_baby('a', 'Anna').copyWith(birth: DateTime(2026, 10, 1))];
+      await t.pumpWidget(
+        ProviderScope(
+          overrides: [
+            localStoreProvider.overrideWith((_) async => store),
+            babyRepositoryProvider.overrideWith((_) async => repo),
+          ],
+          child: const MaterialApp(home: PhotoViewer(babyId: 'a', initial: 0)),
+        ),
+      );
+      await t.runAsync(() => Future.delayed(const Duration(milliseconds: 400)));
+      await t.pumpAndSettle();
+      expect(find.textContaining('Birth day'), findsOneWidget);
+      expect(find.byTooltip('Next photo'), findsOneWidget);
+      await t.tap(find.byTooltip('Next photo'));
+      await t.pumpAndSettle();
+      expect(find.textContaining('7 days'), findsOneWidget);
+      await t.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await t.pumpAndSettle();
+      expect(find.textContaining('Birth day'), findsOneWidget);
+      await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await t.pumpAndSettle();
+      expect(find.textContaining('7 days'), findsOneWidget);
+    },
+  );
 }

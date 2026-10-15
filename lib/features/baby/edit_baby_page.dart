@@ -284,73 +284,113 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
             horizontal: context.isWide ? 0 : 20,
             vertical: context.isWide ? 28 : 20,
           ),
-          children: [
-            BabyDetailsForm(
-              name: _name,
-              place: _place,
-              gender: _gender,
-              birthDate: _birthDate,
-              birthTime: _birthTime,
-              neutralLabel: 'Neutral',
-              onGender: (g) => setState(() => _gender = g),
-              onBirthDate: (d) => setState(() => _birthDate = d),
-              onBirthTime: (t) => setState(() => _birthTime = t),
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                _baby.storage == StorageMode.googleDrive
-                    ? Icons.cloud_done_outlined
-                    : Icons.phone_android,
+          children: () {
+            final wide = context.isWide;
+            final heading = Theme.of(context).textTheme.titleMedium;
+            final details = <Widget>[
+              BabyDetailsForm(
+                name: _name,
+                place: _place,
+                gender: _gender,
+                birthDate: _birthDate,
+                birthTime: _birthTime,
+                neutralLabel: 'Neutral',
+                onGender: (g) => setState(() => _gender = g),
+                onBirthDate: (d) => setState(() => _birthDate = d),
+                onBirthTime: (t) => setState(() => _birthTime = t),
               ),
-              title: Text(
-                _baby.storage == StorageMode.googleDrive
-                    ? 'Photos are kept in your Google Drive'
-                    : 'Photos are only kept in this app',
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  _baby.storage == StorageMode.googleDrive
+                      ? Icons.cloud_done_outlined
+                      : Icons.phone_android,
+                ),
+                title: Text(
+                  _baby.storage == StorageMode.googleDrive
+                      ? 'Photos are kept in your Google Drive'
+                      : 'Photos are only kept in this app',
+                ),
+                subtitle: Text(
+                  _baby.storage == StorageMode.googleDrive
+                      ? 'In the BabyPhotobook folder of your Drive.'
+                      : 'Open ${_baby.name}\'s page and tap "Connect Google Drive" to keep them safe.',
+                ),
               ),
-              subtitle: Text(
-                _baby.storage == StorageMode.googleDrive
-                    ? 'In the BabyPhotobook folder of your Drive.'
-                    : 'Open ${_baby.name}\'s page and tap "Connect Google Drive" to keep them safe.',
+            ];
+            final schedule = <Widget>[
+              Text('How often', style: heading),
+              const SizedBox(height: 8),
+              ScheduleEditor(
+                phases: _phases,
+                birth: _birth,
+                finish: _finish,
+                onChanged: () => setState(() => _error = null),
               ),
-            ),
-            const SizedBox(height: 24),
-            Text('How often', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            ScheduleEditor(
-              phases: _phases,
-              birth: _birth,
-              finish: _finish,
-              onChanged: () => setState(() => _error = null),
-            ),
-            const SizedBox(height: 16),
-            Text('Reminders', style: Theme.of(context).textTheme.titleMedium),
-            ReminderEditor(
-              value: _reminder,
-              onChanged: (r) => setState(() => _reminder = r),
-            ),
-            ReminderStatus(
-              babyId: widget.babyId,
-              enabled: _reminder.enabled,
-              unsaved: _dirty,
-              onSaveAndUpdate: () => _save(updateCalendar: true, stay: true),
-            ),
-            if (_error != null)
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ];
+            final reminders = <Widget>[
+              Text('Reminders', style: heading),
+              ReminderEditor(
+                value: _reminder,
+                onChanged: (r) => setState(() => _reminder = r),
               ),
-            const SizedBox(height: 24),
-            OutlinedButton.icon(
+              ReminderStatus(
+                babyId: widget.babyId,
+                enabled: _reminder.enabled,
+                unsaved: _dirty,
+                onSaveAndUpdate: () => _save(updateCalendar: true, stay: true),
+              ),
+              if (_error != null)
+                Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+            ];
+            final remove = OutlinedButton.icon(
               icon: const Icon(Icons.delete_outline),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.error,
               ),
               label: Text('Remove ${_baby.name}'),
               onPressed: _delete,
-            ),
-          ],
+            );
+            // On a website each part is its own card; on a phone it stays one
+            // long page.
+            Widget card(List<Widget> items) => Card(
+              margin: const EdgeInsets.only(bottom: 20),
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: items,
+                ),
+              ),
+            );
+            return wide
+                ? [
+                    card([
+                      Text(
+                        'Baby details',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      ...details,
+                    ]),
+                    card(schedule),
+                    card(reminders),
+                    Align(alignment: Alignment.centerLeft, child: remove),
+                  ]
+                : [
+                    ...details,
+                    const SizedBox(height: 24),
+                    ...schedule,
+                    const SizedBox(height: 16),
+                    ...reminders,
+                    const SizedBox(height: 24),
+                    remove,
+                  ];
+          }(),
         ),
       ),
     );

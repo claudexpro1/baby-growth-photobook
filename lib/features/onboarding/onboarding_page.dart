@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../ui/adaptive_scaffold.dart';
+import '../../ui/responsive.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -176,54 +177,83 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       child: AdaptiveScaffold(
         title: titles[_step],
         maxWidth: 720,
-        body: SafeArea(
-          child: Column(
-            children: [
-              LinearProgressIndicator(value: (_step + 1) / 4),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    [
-                      _aboutStep,
-                      _storageStep,
-                      _scheduleStep,
-                      _reminderStep,
-                    ][_step](),
-                    if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          _error!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+        body: _framed(
+          context,
+          SafeArea(
+            child: Column(
+              children: [
+                LinearProgressIndicator(value: (_step + 1) / 4),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.all(context.isWide ? 32 : 20),
+                    children: [
+                      if (context.isWide)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: Text(
+                            titles[_step],
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                         ),
-                      ),
-                  ],
+                      [
+                        _aboutStep,
+                        _storageStep,
+                        _scheduleStep,
+                        _reminderStep,
+                      ][_step](),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                child: Row(
-                  children: [
-                    if (_step > 0)
-                      TextButton(
-                        onPressed: () => setState(() {
-                          _step--;
-                          _error = null;
-                        }),
-                        child: const Text('Back'),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: Row(
+                    children: [
+                      if (_step > 0)
+                        TextButton(
+                          onPressed: () => setState(() {
+                            _step--;
+                            _error = null;
+                          }),
+                          child: const Text('Back'),
+                        ),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: (_saving || _connecting) ? null : _next,
+                        child: Text(_step < 3 ? 'Next' : 'Finish'),
                       ),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: (_saving || _connecting) ? null : _next,
-                      child: Text(_step < 3 ? 'Next' : 'Finish'),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// On a website the steps sit in a centred card instead of filling the page.
+  Widget _framed(BuildContext context, Widget content) {
+    if (!context.isWide) return content;
+    return LayoutBuilder(
+      builder: (context, box) => Center(
+        child: SizedBox(
+          height: (box.maxHeight - 56).clamp(420.0, 760.0),
+          child: Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            child: content,
           ),
         ),
       ),
