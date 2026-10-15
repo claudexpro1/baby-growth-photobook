@@ -44,6 +44,7 @@ class DesktopWelcome extends StatelessWidget {
                 _topBar(),
                 narrow
                     ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _heroText(narrow),
                           const SizedBox(height: 48),
@@ -437,69 +438,77 @@ class _HeroVisual extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      height: 500,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            right: 0,
-            top: 120,
-            child: photo('1 year', '🎂', const [
-              Color(0xFFFFD9A0),
-              Color(0xFFF2A65A),
-            ], 7),
-          ),
-          Positioned(
-            left: 0,
-            top: 30,
-            child: photo('Birth day', '👶', const [
-              Color(0xFFF6B7C5),
-              Color(0xFFE58FA6),
-            ], -6),
-          ),
-          Positioned(
-            left: 70,
-            bottom: 0,
-            child: photo('100 days', '🧸', const [
-              Color(0xFFBFD9F2),
-              Color(0xFF8DB7E3),
-            ], 2),
-          ),
-          Positioned(
-            right: 8,
-            top: 18,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.event_available, color: _accent, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    "Time for Luna's photo",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: _ink,
-                      fontSize: 14,
+    // A fixed-width stage, centred: the tilted cards stay together however
+    // wide the window is.
+    return Center(
+      child: SizedBox(
+        width: 480,
+        height: 500,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              right: 0,
+              top: 120,
+              child: photo('1 year', '🎂', const [
+                Color(0xFFFFD9A0),
+                Color(0xFFF2A65A),
+              ], 7),
+            ),
+            Positioned(
+              left: 0,
+              top: 30,
+              child: photo('Birth day', '👶', const [
+                Color(0xFFF6B7C5),
+                Color(0xFFE58FA6),
+              ], -6),
+            ),
+            Positioned(
+              left: 70,
+              bottom: 0,
+              child: photo('100 days', '🧸', const [
+                Color(0xFFBFD9F2),
+                Color(0xFF8DB7E3),
+              ], 2),
+            ),
+            Positioned(
+              right: 8,
+              top: 18,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.event_available, color: _accent, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      "Time for Luna's photo",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: _ink,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

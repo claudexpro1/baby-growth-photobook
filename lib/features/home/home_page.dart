@@ -319,7 +319,7 @@ class _BabyGrid extends StatelessWidget {
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 560,
-                mainAxisExtent: 196,
+                mainAxisExtent: 208,
                 mainAxisSpacing: 20,
                 crossAxisSpacing: 20,
               ),
@@ -445,6 +445,8 @@ class _BabyCard extends ConsumerWidget {
                           children: [
                             Text(
                               baby.name,
+                              maxLines: large ? 1 : 2,
+                              overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(birthSummary(context, baby)),

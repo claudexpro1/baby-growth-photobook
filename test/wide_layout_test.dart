@@ -223,4 +223,36 @@ void main() {
       expect(find.textContaining('7 days'), findsOneWidget);
     },
   );
+
+  testWidgets('landing page at narrow widths: one shared left edge', (t) async {
+    await open(t, const Size(861, 900), const HomePage(), []);
+    double left(Finder f) => t.getTopLeft(f).dx;
+    final how = left(find.text('How it works'));
+    expect(left(find.textContaining('A few photos')), how); // hero text
+    expect(
+      left(find.text('Tell us about your baby')),
+      left(find.text('Choose your rhythm')),
+    );
+    expect(
+      left(find.text('Your Drive, your photos')),
+      left(find.text('No server of ours')),
+    );
+    expect(
+      left(find.text('No server of ours')),
+      left(find.text('Share only if you choose')),
+    );
+  });
+
+  testWidgets(
+    'very narrow phone: the photo buttons stack instead of wrapping',
+    (t) async {
+      await open(t, const Size(340, 700), const BabyPage(babyId: 'a'), [
+        _baby('a', 'Anna'),
+      ]);
+      final take = t.getTopLeft(find.text('Take photo')).dy;
+      final gallery = t.getTopLeft(find.text('From gallery')).dy;
+      expect(gallery, greaterThan(take + 20)); // one under the other
+      expect(t.takeException(), isNull);
+    },
+  );
 }

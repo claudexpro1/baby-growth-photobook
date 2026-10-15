@@ -149,22 +149,19 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          icon: const Icon(Icons.photo_camera),
-                          label: Text(haveToday ? 'Retake' : 'Take photo'),
-                          onPressed: () => capturePhoto(
-                            context,
-                            ref,
-                            baby,
-                            ImageSource.camera,
-                          ),
+                  LayoutBuilder(
+                    builder: (context, box) {
+                      final camera = FilledButton.icon(
+                        icon: const Icon(Icons.photo_camera),
+                        label: Text(haveToday ? 'Retake' : 'Take photo'),
+                        onPressed: () => capturePhoto(
+                          context,
+                          ref,
+                          baby,
+                          ImageSource.camera,
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      OutlinedButton.icon(
+                      );
+                      final gallery = OutlinedButton.icon(
                         icon: const Icon(Icons.photo_library_outlined),
                         label: const Text('From gallery'),
                         onPressed: () => capturePhoto(
@@ -173,8 +170,27 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                           baby,
                           ImageSource.gallery,
                         ),
-                      ),
-                    ],
+                      );
+                      // Very narrow phones: one button under the other, so the
+                      // labels never wrap.
+                      if (box.maxWidth < 310) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            camera,
+                            const SizedBox(height: 8),
+                            gallery,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: camera),
+                          const SizedBox(width: 10),
+                          gallery,
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
