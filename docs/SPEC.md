@@ -90,7 +90,8 @@ Non-goals for v1: social features, a web viewer, AI features, editing tools, sha
 - Video timelapse: later (see 13).
 
 ### 5.7 Finding your Drive folder and photos (built)
-- The baby page has an always-visible **"Where are my photos"** card. For Drive babies it shows "Google Drive > BabyPhotobook > <name>", a line such as "12 photos safe in your Drive" or "2 photos waiting to upload", an **Open in Drive** button and a **Sync** button (uploads anything waiting). The folder is created when the first upload happens; before that Open in Drive is greyed out. The page also quietly tries to upload waiting photos each time it opens.
+- The baby page has a **"Backup and reminders"** card (replaces the old "Where are my photos" box). Each part is one short line that opens in place: **Google Drive** ("Saved in Google Drive", "2 photos waiting to upload", "Saving...") opens to the folder path, **Open in Drive**, **Sync now** and the note not to rename, move or delete the folder or its files (photos added by hand are not shown); **Reminders** ("Reminders at 6:00 PM, Calendar ✓") opens to the on/off switch, time, the Calendar status and buttons, and a link to Settings. A step that is not done (no Drive, Google sign-in lapsed, reminders not yet in Google Calendar) shows open with one button (Connect Google Drive / Reconnect / Add reminders) and a "One step left" note. The page quietly tries to upload waiting photos when it opens, but never opens Google's window by itself: a lapsed sign-in shows Reconnect. A gear next to the three dots opens Settings.
+- Folder names: root `BabyPhotobook (app folder - do not edit or delete)`, profiles in `_App data (do not delete)`, baby folders keep the baby's name; folders made with the old names (`BabyPhotobook`, `_App data`) are renamed in place on first use and every folder gets a description asking not to change it.
 - Folder layout, in the parent's own Drive:
 
 ```

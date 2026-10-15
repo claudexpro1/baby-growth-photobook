@@ -17,10 +17,11 @@ class PhotoName {
   static PhotoName? parse(String name) {
     final m = _re.firstMatch(name);
     if (m == null) return null;
-    return PhotoName(
-      int.parse(m[1]!),
-      DateTime.utc(int.parse(m[2]!), int.parse(m[3]!), int.parse(m[4]!)),
-    );
+    final y = int.parse(m[2]!), mo = int.parse(m[3]!), d = int.parse(m[4]!);
+    final date = DateTime.utc(y, mo, d);
+    // 2026-13-45 would roll over into another day: not one of our names.
+    if (date.year != y || date.month != mo || date.day != d) return null;
+    return PhotoName(int.parse(m[1]!), date);
   }
 }
 

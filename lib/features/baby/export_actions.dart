@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../data/google_auth.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -107,7 +110,9 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
     if (mounted) setState(f);
   }
 
-  Future<void> _create() async {
+  Future<void> _create() => GoogleAuth.userInitiated(_createInner);
+
+  Future<void> _createInner() async {
     _set(() {
       _busy = true;
       _error = null;
@@ -148,7 +153,9 @@ class _ShareLinkSheetState extends ConsumerState<_ShareLinkSheet> {
     }
   }
 
-  Future<void> _stop() async {
+  Future<void> _stop() => GoogleAuth.userInitiated(_stopInner);
+
+  Future<void> _stopInner() async {
     final id = _baby.driveSharedFolderId;
     if (id == null) return;
     _set(() => _busy = true);

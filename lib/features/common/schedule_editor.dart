@@ -562,7 +562,7 @@ class ReminderEditor extends StatelessWidget {
           title: const Text('Remind me to take a photo'),
           subtitle: Text(
             kIsWeb
-                ? 'Reminders go into your Google Calendar, so every device notifies you. Use "Add reminders to Google Calendar" in the baby\'s menu after setup.'
+                ? 'Reminders go into your Google Calendar, so every device notifies you.'
                 : 'A gentle notification on your phone. Off any time.',
           ),
           value: value.enabled,

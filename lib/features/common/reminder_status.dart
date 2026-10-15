@@ -18,7 +18,11 @@ class ReminderStatus extends ConsumerStatefulWidget {
     required this.enabled,
     this.unsaved = false,
     this.onSaveAndUpdate,
+    this.embedded = false,
   });
+
+  /// Inside another card: no box of its own.
+  final bool embedded;
   final String babyId;
 
   /// Settings were changed here but not saved yet: the calendar would still
@@ -247,61 +251,63 @@ class _ReminderStatusState extends ConsumerState<ReminderStatus> {
         child: const Text('Ask again / send test'),
       );
     }
+    final content = Padding(
+      padding: EdgeInsets.all(widget.embedded ? 0 : 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon),
+              const SizedBox(width: 12),
+              Expanded(child: Text(text)),
+            ],
+          ),
+          if (widget.unsaved && useGoogleCalendar)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'You changed something here. Calendar still has the old '
+                'settings until you save.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          if (_busy || _checking)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: LinearProgressIndicator(),
+            ),
+          if (_outcome != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _outcome!.message,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: _outcome!.ok ? null : scheme.error,
+                ),
+              ),
+            ),
+          if (_outcome?.details != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Details: ${_outcome!.details}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          if (action != null)
+            Align(alignment: Alignment.centerRight, child: action),
+        ],
+      ),
+    );
+    if (widget.embedded) return content;
     return Card(
       color: good
           ? scheme.primaryContainer.withValues(alpha: 0.5)
           : scheme.errorContainer.withValues(alpha: 0.4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon),
-                const SizedBox(width: 12),
-                Expanded(child: Text(text)),
-              ],
-            ),
-            if (widget.unsaved && useGoogleCalendar)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text(
-                  'You changed something here. Calendar still has the old '
-                  'settings until you save.',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            if (_busy || _checking)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              ),
-            if (_outcome != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _outcome!.message,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: _outcome!.ok ? null : scheme.error,
-                  ),
-                ),
-              ),
-            if (_outcome?.details != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'Details: ${_outcome!.details}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            if (action != null)
-              Align(alignment: Alignment.centerRight, child: action),
-          ],
-        ),
-      ),
+      child: content,
     );
   }
 }

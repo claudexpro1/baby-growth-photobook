@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -18,6 +20,17 @@ class GoogleAuth {
   static String lastRequest = '';
 
   static Future<void>? _init;
+
+  static const _tapKey = #googleAuthUserTap;
+
+  /// Runs [body] as the answer to something the user just tapped. Only then
+  /// may Google's pop-up open: a pop-up that opens by itself (background
+  /// upload, expired token) flashes and closes, or is blocked.
+  static Future<T> userInitiated<T>(Future<T> Function() body) =>
+      runZoned(body, zoneValues: {_tapKey: true});
+
+  /// True inside [userInitiated]; background work sees false.
+  static bool get mayPrompt => Zone.current[_tapKey] == true;
 
   static Future<void> ensureInit() =>
       _init ??= GoogleSignIn.instance.initialize(

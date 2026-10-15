@@ -73,6 +73,10 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-16: Baby page: new "Backup and reminders" card with one short line each for Google Drive and Reminders that open in place (replaces the big Drive box); a step that is not done yet (connect Drive, reconnect, add reminders to Google Calendar) shows open with its button and a "One step left" note; reminders on/off and time can be changed right there; a gear next to the three dots opens Settings
+- 2026-10-16: Fixed Google's sign-in window flashing open on its own after login: only a tap you make can open it now; background uploads that need a new sign-in show a "Reconnect" button instead
+- 2026-10-16: Drive folders now say "do not edit or delete" in their names (`BabyPhotobook (app folder - do not edit or delete)`, `_App data (do not delete)`) and in their Drive description; folders made earlier are renamed in place on first use (same folder, nothing moved); the app also explains it where the folder is shown
+- 2026-10-16: A photo file name with an impossible date (like `00002_2026-13-45.jpg`) is no longer taken as one of ours; tests now cover extra files in the Drive folder
 - 2026-10-16: Baby page: the birth line ("Our story begins: born … (a Monday)") is shown once in the header; the duplicate card in the timeline is gone, which saves space on phones
 - 2026-10-15: Layout audit at 13 window sizes (phones, tablets, laptops, landscape): fixed the landing page alignment on narrow windows, long baby names on the home cards, and the photo buttons on very narrow phones; a test now checks every main screen at all those sizes
 - 2026-10-15: Timelapse video: "Make timelapse video" turns all photos into one MP4/WebM in the browser (speed, optional age on each photo) and downloads it; nothing leaves the device

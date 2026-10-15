@@ -15,6 +15,7 @@ import '../notifications/reminder_service.dart';
 import 'baby_repository.dart';
 import 'cloud_storage.dart';
 import 'drive_cloud.dart';
+import 'google_auth.dart';
 import 'local_store.dart';
 import 'local_store_factory.dart';
 import 'photo_library.dart';
@@ -116,7 +117,9 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
   Future<void> remove(Baby baby) async {
     final sharedId = baby.driveSharedFolderId;
     if (sharedId != null) {
-      await ref.read(cloudProvider).unshareFolder(sharedId);
+      await GoogleAuth.userInitiated(
+        () => ref.read(cloudProvider).unshareFolder(sharedId),
+      );
     }
     try {
       await GoogleCalendarReminders.instance.remove(baby, prompt: true);
@@ -214,10 +217,32 @@ final babiesProvider = AsyncNotifierProvider<BabiesNotifier, List<Baby>>(
 
 /// Outcome of a sync attempt, in words a parent can read.
 class SyncOutcome {
-  const SyncOutcome(this.message, {this.ok = true});
+  const SyncOutcome(
+    this.message, {
+    this.ok = true,
+    this.needsReconnect = false,
+  });
   final String message;
   final bool ok;
+
+  /// Google wants the user to sign in again (needs a tap on "Reconnect").
+  final bool needsReconnect;
 }
+
+/// True while Google Drive is waiting for the user to reconnect (the sign-in
+/// lasts about an hour in a browser). Background work never opens Google's
+/// window itself; it sets this and the page shows a "Reconnect" button.
+class DriveReconnectNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void set(bool v) {
+    if (state != v) state = v;
+  }
+}
+
+final driveReconnectProvider = NotifierProvider<DriveReconnectNotifier, bool>(
+  DriveReconnectNotifier.new,
+);
 
 class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
   PhotosNotifier(this.babyId);
@@ -265,8 +290,12 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
 
   /// Runs syncs for this baby one after another, so two syncs never create
   /// duplicate folders or files.
-  Future<SyncOutcome> sync({bool restore = false}) {
-    final run = _lastSync.then((_) => _sync(restore: restore));
+  ///
+  /// [interactive] is true only when the user just tapped something (Sync,
+  /// Restore, Connect): only then may Google's sign-in window open.
+  Future<SyncOutcome> sync({bool restore = false, bool interactive = false}) {
+    Future<SyncOutcome> go() => _lastSync.then((_) => _sync(restore: restore));
+    final run = interactive ? GoogleAuth.userInitiated(go) : go();
     _lastSync = run.then((_) {}, onError: (_) {});
     return run;
   }
@@ -279,7 +308,12 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
     final cloud = ref.read(cloudProvider);
     try {
       if (!await cloud.isSignedIn()) {
-        return const SyncOutcome('Google Drive is not connected.', ok: false);
+        ref.read(driveReconnectProvider.notifier).set(true);
+        return const SyncOutcome(
+          'Google Drive is not connected. Tap Reconnect.',
+          ok: false,
+          needsReconnect: true,
+        );
       }
       final lib = await _lib;
       final sync = PhotoSync(cloud);
@@ -303,6 +337,7 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
         }
       }
       await _refresh();
+      ref.read(driveReconnectProvider.notifier).set(false);
       if (r.failed > 0) {
         return SyncOutcome(
           '${r.failed} photo(s) are waiting to upload. We will try again.',
@@ -315,6 +350,15 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
             : 'All photos are safe in Google Drive.',
       );
     } catch (e) {
+      if (e is DriveNeedsReconnect || e is GoogleReauthFailed) {
+        ref.read(driveReconnectProvider.notifier).set(true);
+        return const SyncOutcome(
+          'Google Drive needs you to reconnect. Your photos are safe on this '
+          'phone and upload after you tap Reconnect.',
+          ok: false,
+          needsReconnect: true,
+        );
+      }
       return const SyncOutcome(
         'Could not reach Google Drive. Your photos are saved on this phone and will upload later.',
         ok: false,

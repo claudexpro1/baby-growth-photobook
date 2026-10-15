@@ -16,8 +16,8 @@ Contact: [CONTACT EMAIL]
 
 | What | Where it is kept | Do we receive it? |
 |---|---|---|
-| Baby's name, colour choice (girl / boy / neutral), birth date and time, birth place (optional), photo schedule and reminder settings | In this browser or phone (the app's own storage). If you connect Google Drive, also as a small profile file in your own Drive folder `BabyPhotobook/_App data/` so you can restore on a new device | No |
-| Photos (named like `00001_2026-10-10.jpg`) | On your device, and in your own Google Drive folder `BabyPhotobook/<baby name>/`. A connected Google Drive is required for new babies; only babies created before that change can still be device-only until Drive is connected | No |
+| Baby's name, colour choice (girl / boy / neutral), birth date and time, birth place (optional), photo schedule and reminder settings | In this browser or phone (the app's own storage). If you connect Google Drive, also as a small profile file in your own Drive folder `BabyPhotobook (app folder - do not edit or delete)/_App data (do not delete)/` so you can restore on a new device | No |
+| Photos (named like `00001_2026-10-10.jpg`) | On your device, and in your own Google Drive folder `BabyPhotobook (app folder - do not edit or delete)/<baby name>/`. A connected Google Drive is required for new babies; only babies created before that change can still be device-only until Drive is connected | No |
 | The names of the Drive folders the app created, and a list of which photos are already uploaded | On your device (and the folder ids inside the profile file) | No |
 | Photo reminders, if you add them to Google Calendar | In a calendar the app creates in your own Google Calendar, "Baby Photobook - <baby name>", with an event on each photo day | No |
 | A photobook PDF, if you make a share link | In a `Shared` folder in your own Drive (the PDF shows the baby's name, birth date, birth place if you entered one, and the photos with ages and dates) | No |

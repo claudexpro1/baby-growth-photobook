@@ -193,7 +193,7 @@ void main() {
     (t) async {
       final (store, repo) = await setup(t, 3);
       final ex = FakeExporter();
-      await openPage(t, store, repo, ex, const Size(1440, 900));
+      await openPage(t, store, repo, ex, const Size(1440, 1500));
       expect(find.text('Make timelapse video'), findsOneWidget);
       await t.ensureVisible(find.text('Make timelapse video'));
       await t.pumpAndSettle();
@@ -231,7 +231,7 @@ void main() {
       store,
       repo,
       FakeExporter(fail: true),
-      const Size(1440, 900),
+      const Size(1440, 1500),
     );
     await t.ensureVisible(find.text('Make timelapse video'));
     await t.pumpAndSettle();
@@ -251,7 +251,7 @@ void main() {
     t,
   ) async {
     final (store1, repo1) = await setup(t, 1);
-    await openPage(t, store1, repo1, FakeExporter(), const Size(1440, 900));
+    await openPage(t, store1, repo1, FakeExporter(), const Size(1440, 1500));
     expect(find.text('Make timelapse video'), findsNothing);
 
     final (store2, repo2) = await setup(t, 3);
@@ -260,7 +260,7 @@ void main() {
       store2,
       repo2,
       FakeExporter(supportedFlag: false),
-      const Size(1440, 900),
+      const Size(1440, 1500),
     );
     expect(find.text('Make timelapse video'), findsNothing);
   });

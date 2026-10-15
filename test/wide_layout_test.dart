@@ -147,7 +147,7 @@ void main() {
   testWidgets('desktop baby page: side panel with actions and a timeline', (
     t,
   ) async {
-    await open(t, const Size(1440, 900), const BabyPage(babyId: 'a'), [
+    await open(t, const Size(1440, 1500), const BabyPage(babyId: 'a'), [
       _baby('a', 'Anna'),
     ]);
     expect(find.text('Timeline'), findsOneWidget);

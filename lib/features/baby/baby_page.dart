@@ -6,7 +6,6 @@ import '../common/photo_image.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/photo_library.dart';
 import '../../data/providers.dart';
@@ -24,6 +23,7 @@ import 'edit_baby_page.dart';
 import 'export_actions.dart';
 import 'photo_viewer.dart';
 import 'slideshow.dart';
+import 'status_card.dart';
 import 'timelapse_dialog.dart';
 
 /// A baby's story: today's photo, where the photos are, and the timeline.
@@ -48,16 +48,43 @@ class _BabyPageState extends ConsumerState<BabyPage> {
   Future<void> _sync({bool quiet = false, bool restore = false}) async {
     if (_syncing) return;
     setState(() => _syncing = true);
+    if (!quiet) {
+      // The user just tapped: this is the one moment Google's window may open.
+      try {
+        final cloud = ref.read(cloudProvider);
+        final baby = ref
+            .read(babiesProvider)
+            .value
+            ?.where((b) => b.id == widget.babyId)
+            .firstOrNull;
+        if (baby?.storage == StorageMode.googleDrive &&
+            !await cloud.isSignedIn()) {
+          await cloud.signIn();
+          ref.read(driveReconnectProvider.notifier).set(false);
+        }
+      } catch (_) {
+        if (mounted) {
+          setState(() => _syncing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Google did not reconnect. Tap Reconnect and allow the '
+                'pop-up, then try again.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+    }
     final outcome = await ref
         .read(photosProvider(widget.babyId).notifier)
-        .sync(restore: restore);
+        .sync(restore: restore, interactive: !quiet);
     if (!mounted) return;
     setState(() => _syncing = false);
-    if (!quiet || !outcome.ok) {
-      if (!(quiet && outcome.message.contains('not connected'))) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(outcome.message)));
-      }
+    if (!quiet || (!outcome.ok && !outcome.needsReconnect)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(outcome.message)));
     }
   }
 
@@ -196,12 +223,15 @@ class _BabyPageState extends ConsumerState<BabyPage> {
               ),
             ),
           );
-          final where = _WhereCard(
+          final where = BackupAndReminders(
             baby: baby,
             photos: photos,
             syncing: _syncing,
             onSync: () => _sync(),
             onConnect: () => _connectDrive(baby),
+            onReconnect: () => _sync(),
+            onUpdateCalendar: () => _addToGoogleCalendar(baby),
+            onSettings: () => _onMenu('edit', baby, photos),
           );
           final timeline = <Widget>[
             if (desktop)
@@ -257,15 +287,9 @@ class _BabyPageState extends ConsumerState<BabyPage> {
               ],
               if (kIsWeb && baby.reminder.enabled)
                 const PopupMenuItem(
-                  value: 'calendar',
-                  child: Text('Add reminders to Google Calendar'),
-                ),
-              if (kIsWeb && baby.reminder.enabled)
-                const PopupMenuItem(
                   value: 'ics',
                   child: Text('Download calendar file (.ics)'),
                 ),
-              const PopupMenuItem(value: 'edit', child: Text('Settings')),
             ],
           );
 
@@ -320,7 +344,14 @@ class _BabyPageState extends ConsumerState<BabyPage> {
 
           return AdaptiveScaffold(
             title: baby.name,
-            actions: [menu],
+            actions: [
+              IconButton(
+                tooltip: 'Settings',
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => _onMenu('edit', baby, photos),
+              ),
+              menu,
+            ],
             bodyPadded: !desktop,
             maxWidth: desktop ? 1240 : 760,
             body: body,
@@ -435,12 +466,6 @@ class _BabyPageState extends ConsumerState<BabyPage> {
           tile(Icons.picture_as_pdf_outlined, 'Share photobook (PDF)', 'pdf'),
           if (baby.storage == StorageMode.googleDrive)
             tile(Icons.link, 'Get a share link', 'link'),
-          if (kIsWeb && baby.reminder.enabled)
-            tile(
-              Icons.event_available_outlined,
-              'Add reminders to Google Calendar',
-              'calendar',
-            ),
           tile(Icons.settings_outlined, 'Settings', 'edit'),
         ],
       ),
@@ -601,121 +626,6 @@ class _BabyPageState extends ConsumerState<BabyPage> {
 }
 
 /// "Where are my photos?" - always visible, so the Drive folder is easy to find.
-class _WhereCard extends StatelessWidget {
-  const _WhereCard({
-    required this.baby,
-    required this.photos,
-    required this.syncing,
-    required this.onSync,
-    required this.onConnect,
-  });
-  final Baby baby;
-  final List<PhotoEntry> photos;
-  final bool syncing;
-  final VoidCallback onSync;
-  final VoidCallback onConnect;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    if (baby.storage != StorageMode.googleDrive) {
-      return Card(
-        color: scheme.errorContainer.withValues(alpha: 0.5),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Your photos are only on this device.',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'If this browser\'s data is cleared or the device is lost, they '
-                'are lost too. Connect Google Drive to keep them safe in your '
-                'own account.',
-              ),
-              const SizedBox(height: 10),
-              FilledButton(
-                onPressed: onConnect,
-                child: const Text('Connect Google Drive'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    final waiting = photos.where((p) => !p.synced).length;
-    final folderId = baby.driveFolderId;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.folder_outlined),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Google Drive  ›  BabyPhotobook  ›  ${baby.name}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              waiting == 0
-                  ? '${photos.length} photo${photos.length == 1 ? '' : 's'} safe in your Drive'
-                  : '$waiting photo${waiting == 1 ? '' : 's'} waiting to upload',
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('Open in Drive'),
-                    onPressed: folderId == null
-                        ? null
-                        : () => launchUrl(
-                            ((DriveFolderUrl.of(folderId))),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
-                  icon: syncing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.sync),
-                  label: const Text('Sync'),
-                  onPressed: syncing ? null : onSync,
-                ),
-              ],
-            ),
-            if (folderId == null)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text(
-                  'The folder is created with your first photo.',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class DriveFolderUrl {
   static Uri of(String id) =>
       Uri.parse('https://drive.google.com/drive/folders/$id');
