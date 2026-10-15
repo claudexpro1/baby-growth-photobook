@@ -124,10 +124,19 @@ class GoogleCalendarReminders {
   /// Is the calendar still in the user's calendar list? A calendar deleted by
   /// hand can keep answering `calendars.get` and `events.list` for a while,
   /// but it is gone from the list. Throws a 404 when it is gone.
+  ///
+  /// Google may refuse this question for an app that only holds the narrow
+  /// "calendars this app created" permission (401/403). That says nothing
+  /// about the calendar, so then the other checks decide.
   Future<void> _requireInList(cal.CalendarApi api, String id) async {
-    final entry = await api.calendarList.get(id);
-    if (entry.deleted == true) {
-      throw cal.DetailedApiRequestError(404, 'Calendar was deleted');
+    try {
+      final entry = await api.calendarList.get(id);
+      if (entry.deleted == true) {
+        throw cal.DetailedApiRequestError(404, 'Calendar was deleted');
+      }
+    } on cal.DetailedApiRequestError catch (e) {
+      if (e.status == 401 || e.status == 403) return;
+      rethrow;
     }
   }
 
@@ -317,7 +326,8 @@ String calendarErrorMessage(Object e) {
           'Tap again and tick the Calendar box when Google asks.';
     }
     if (e.status == 401) {
-      return 'Your Google sign-in has expired. Tap again and allow Calendar access.';
+      return 'Your Google sign-in has expired. Tap again and allow Calendar access. '
+          '(Google refused: ${GoogleAuth.lastRequest})';
     }
     return 'Google Calendar answered with an error (${e.status}: ${e.message ?? 'unknown'}).';
   }

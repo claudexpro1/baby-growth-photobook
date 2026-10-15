@@ -14,6 +14,9 @@ class GoogleAuth {
   static const _iosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
   static const _webClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 
+  /// The last request sent with the user's sign-in, for error messages.
+  static String lastRequest = '';
+
   static Future<void>? _init;
 
   static Future<void> ensureInit() =>
@@ -111,6 +114,7 @@ class GoogleAuthClient extends http.BaseClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final first = await _headers();
     request.headers.addAll(first);
+    GoogleAuth.lastRequest = '${request.method} ${request.url.path}';
     final res = await _inner.send(request);
     if (res.statusCode != 401) return res;
 

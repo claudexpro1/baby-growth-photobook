@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-15: Fix: the calendar-list check could make Google answer "401 Invalid Credentials" and the app wrongly said the sign-in had expired; it is now optional, and a 401 names the request Google refused
 - 2026-10-15: Desktop polish: Settings as section cards, onboarding as a centred card, photo viewer with arrow buttons and arrow/Esc keys; Save turns into a filled button once there are unsaved changes
 - 2026-10-15: Desktop web design: top bar with breadcrumb, grid of baby cards, two-pane baby page (side panel with actions, timeline on the right), centred forms, and a landing page with hero, how it works and privacy; phone layout unchanged
 - 2026-10-15: Tapping Check now / Update calendar first asks Google whether the saved sign-in still works and renews it inside the tap; if renewal fails the message says why

@@ -18,6 +18,9 @@ class FakeCalendarServer {
   /// A calendar deleted by hand: gone from the user's list, yet `get` and
   /// `events` may still answer for a while.
   bool ghost = false;
+
+  /// Real Google answers 401 to calendarList for the narrow app-created scope.
+  bool calendarListRefused = false;
   int calendarsCreated = 0;
   int calls = 0;
   String? title; // set by a create or a rename
@@ -41,6 +44,7 @@ class FakeCalendarServer {
       headers: {'content-type': 'application/json'},
     );
     if (path.endsWith('/calendarList/cal1') && r.method == 'GET') {
+      if (calendarListRefused) return err(401);
       return calendarExists && !ghost
           ? ok({'id': 'cal1', 'summary': title})
           : err(404);
@@ -197,4 +201,20 @@ void main() {
     expect(server.calendarsCreated, 1);
     expect(server.events.values.first['summary'], "Time for Lulu's photo");
   });
+
+  test(
+    'a refused calendar-list question does not break check or sync',
+    () async {
+      server.calendarListRefused = true;
+      final id = await service.sync(baby(), now, {});
+      expect(id, 'cal1');
+      final check = await service.check(baby(calendarId: 'cal1'), now);
+      expect(check.state, CalendarState.ok);
+      expect(check.count, GoogleCalendarReminders.windowSize);
+      // a deleted calendar is still noticed through the other calls
+      server.calendarExists = false;
+      final gone = await service.check(baby(calendarId: 'cal1'), now);
+      expect(gone.state, CalendarState.missing);
+    },
+  );
 }
