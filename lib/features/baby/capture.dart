@@ -1,10 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../camera/camera_service.dart';
+import '../../camera/camera_service_factory.dart';
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../common/photo_day_picker.dart';
+import 'camera_screen.dart';
 
 DateTime _day(DateTime d) => DateTime.utc(d.year, d.month, d.day);
 
@@ -14,12 +19,35 @@ Future<void> capturePhoto(
   BuildContext context,
   WidgetRef ref,
   Baby baby,
-  ImageSource source,
-) async {
+  ImageSource source, {
+  CameraService Function()? cameraFactory,
+}) async {
+  // On the web the camera opens inside the app, with a guide of the last photo.
+  Uint8List? shot;
+  var pickFrom = source;
+  if (source == ImageSource.camera) {
+    final service = (cameraFactory ?? createCameraService)();
+    if (service.supported) {
+      final existing = ref.read(photosProvider(baby.id)).value ?? [];
+      final last = existing.isEmpty ? null : await existing.last.bytes();
+      final first = existing.length > 1 ? await existing.first.bytes() : null;
+      if (!context.mounted) return;
+      final result = await Navigator.of(context).push<CameraResult>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) =>
+              CameraScreen(service: service, last: last, first: first),
+        ),
+      );
+      if (result == null) return;
+      shot = result.bytes;
+      if (shot == null) pickFrom = ImageSource.camera; // camera app instead
+    }
+  }
   final picker = ImagePicker();
-  final XFile? file;
+  XFile? file;
   try {
-    file = await picker.pickImage(source: source);
+    if (shot == null) file = await picker.pickImage(source: pickFrom);
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -32,10 +60,10 @@ Future<void> capturePhoto(
     }
     return;
   }
-  if (file == null || !context.mounted) return;
+  if ((file == null && shot == null) || !context.mounted) return;
 
   var date = DateTime.now();
-  if (source == ImageSource.gallery) {
+  if (source == ImageSource.gallery && file != null) {
     // Gallery photos may be from another day: let the parent confirm the date.
     final taken = await file.lastModified();
     if (!context.mounted) return;
@@ -84,7 +112,7 @@ Future<void> capturePhoto(
     );
     if (replace != true) return;
   }
-  await photos.addPhoto(await file.readAsBytes(), date);
+  await photos.addPhoto(shot ?? await file!.readAsBytes(), date);
   if (context.mounted) {
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Photo saved ♥')));

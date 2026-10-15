@@ -287,6 +287,7 @@ class DesktopWelcome extends StatelessWidget {
 
   Widget _threeUp(List<Widget> cards, bool narrow) => narrow
       ? Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (final c in cards)
               Padding(padding: const EdgeInsets.only(bottom: 16), child: c),
