@@ -1,3 +1,6 @@
+import '../export/timelapse.dart';
+import '../export/timelapse_factory.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -19,6 +22,11 @@ import 'photo_sync.dart';
 
 /// Overridable in tests.
 final cloudProvider = Provider<CloudStorage>((_) => DriveCloud.instance);
+
+/// Makes timelapse videos in the browser; tests swap it for a fake.
+final timelapseExporterProvider = Provider<TimelapseExporter>(
+  (_) => createTimelapseExporter(),
+);
 
 final localStoreProvider = FutureProvider<LocalStore>((_) => openLocalStore());
 

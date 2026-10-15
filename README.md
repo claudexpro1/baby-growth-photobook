@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-15: Timelapse video: "Make timelapse video" turns all photos into one MP4/WebM in the browser (speed, optional age on each photo) and downloads it; nothing leaves the device
 - 2026-10-15: In-app camera with a ghost overlay: the last (or first) photo shows see-through over the live view so every photo lines up; falls back to the camera app. Also fixed the alignment of the "Private by design" cards
 - 2026-10-15: Google Drive is now required: onboarding no longer offers "only in this app", and the start screens say you need a Google account
 - 2026-10-15: Removed "Disconnect Google Drive" (it also cut Calendar off); Log out replaces it. The Delete-everything dialog now says it deletes the app's Google Calendars too

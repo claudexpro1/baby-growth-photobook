@@ -24,6 +24,7 @@ import 'edit_baby_page.dart';
 import 'export_actions.dart';
 import 'photo_viewer.dart';
 import 'slideshow.dart';
+import 'timelapse_dialog.dart';
 
 /// A baby's story: today's photo, where the photos are, and the timeline.
 class BabyPage extends ConsumerStatefulWidget {
@@ -218,6 +219,12 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                   value: 'slideshow',
                   child: Text('Play slideshow'),
                 ),
+              if (photos.length > 1 &&
+                  ref.watch(timelapseExporterProvider).supported)
+                const PopupMenuItem(
+                  value: 'timelapse',
+                  child: Text('Make timelapse video'),
+                ),
               const PopupMenuItem(
                 value: 'pdf',
                 child: Text('Share photobook (PDF)'),
@@ -313,6 +320,13 @@ class _BabyPageState extends ConsumerState<BabyPage> {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => SlideshowPage(babyId: baby.id)),
         );
+      case 'timelapse':
+        showTimelapseDialog(
+          context,
+          exporter: ref.read(timelapseExporterProvider),
+          baby: baby,
+          photos: photos,
+        );
       case 'pdf':
         sharePhotobookPdf(context, ref, baby, photos);
       case 'link':
@@ -392,6 +406,13 @@ class _BabyPageState extends ConsumerState<BabyPage> {
         children: [
           if (photos.length > 1)
             tile(Icons.slideshow, 'Play slideshow', 'slideshow'),
+          if (photos.length > 1 &&
+              ref.watch(timelapseExporterProvider).supported)
+            tile(
+              Icons.movie_creation_outlined,
+              'Make timelapse video',
+              'timelapse',
+            ),
           tile(Icons.picture_as_pdf_outlined, 'Share photobook (PDF)', 'pdf'),
           if (baby.storage == StorageMode.googleDrive)
             tile(Icons.link, 'Get a share link', 'link'),
