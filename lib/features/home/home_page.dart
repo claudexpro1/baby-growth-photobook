@@ -6,7 +6,6 @@ import '../common/drive_consent.dart';
 import 'welcome_view.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
@@ -90,46 +89,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _disconnectDrive() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Disconnect Google Drive?'),
-        content: const Text(
-          'The app signs out of Google Drive on this device and stops uploading. '
-          'Your photos stay in your Drive and on this device.\n\n'
-          'To take the access away completely, also remove Baby Photobook at '
-          'myaccount.google.com/permissions.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Disconnect'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    String message;
-    try {
-      await ref.read(cloudProvider).signOut();
-      message = 'Google Drive is disconnected on this device.';
-    } catch (_) {
-      message = 'Could not disconnect. Please try again.';
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-    await launchUrl(
-      Uri.parse('https://myaccount.google.com/permissions'),
-      mode: LaunchMode.externalApplication,
-    ).catchError((_) => false);
-  }
-
   Future<void> _logOut() async {
     final babies = ref.read(babiesProvider).value ?? [];
     final local = [
@@ -198,8 +157,10 @@ class _HomePageState extends ConsumerState<HomePage> {
       builder: (c) => AlertDialog(
         title: const Text('Delete everything on this device?'),
         content: Text(
-          'This removes all babies, their reminders and the photos kept on this '
-          'device, switches off any share links and signs out of Google Drive.\n\n'
+          'This removes all babies and the photos kept on this device, switches '
+          'off any share links and signs you out of Google.\n\n'
+          'It also DELETES the "Baby Photobook" calendars this app made in your '
+          'Google Calendar, with their reminders.\n\n'
           'Photos already in your Google Drive are NOT deleted: delete the '
           '"BabyPhotobook" folder in Drive yourself if you want those gone.'
           '${waiting.isEmpty ? '' : '\n\nNot uploaded yet, so these would be lost: ${waiting.join(', ')}. Cancel and sync first.'}',
@@ -276,7 +237,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           onSelected: (v) => switch (v) {
             'restore' => _restore(),
             'logout' => _logOut(),
-            'disconnect' => _disconnectDrive(),
             _ => _deleteAll(),
           },
           itemBuilder: (_) => [
@@ -286,10 +246,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: const Text('Bring back babies from Google Drive'),
             ),
             const PopupMenuItem(value: 'logout', child: Text('Log out')),
-            const PopupMenuItem(
-              value: 'disconnect',
-              child: Text('Disconnect Google Drive'),
-            ),
             PopupMenuItem(
               value: 'delete',
               child: Text('Delete all data on this device'),

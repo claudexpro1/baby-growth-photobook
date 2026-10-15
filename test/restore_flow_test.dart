@@ -97,6 +97,7 @@ void main() {
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
     expect(find.text('Bring back babies from Google Drive'), findsOneWidget);
-    expect(find.text('Disconnect Google Drive'), findsOneWidget);
+    expect(find.text('Log out'), findsOneWidget);
+    expect(find.text('Disconnect Google Drive'), findsNothing);
   });
 }
