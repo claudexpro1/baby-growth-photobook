@@ -195,6 +195,8 @@ void main() {
       final ex = FakeExporter();
       await openPage(t, store, repo, ex, const Size(1440, 900));
       expect(find.text('Make timelapse video'), findsOneWidget);
+      await t.ensureVisible(find.text('Make timelapse video'));
+      await t.pumpAndSettle();
       await t.tap(find.text('Make timelapse video'));
       await t.pumpAndSettle();
       expect(find.textContaining("Anna's 3 photos"), findsOneWidget);
@@ -231,6 +233,8 @@ void main() {
       FakeExporter(fail: true),
       const Size(1440, 900),
     );
+    await t.ensureVisible(find.text('Make timelapse video'));
+    await t.pumpAndSettle();
     await t.tap(find.text('Make timelapse video'));
     await t.pumpAndSettle();
     await t.tap(find.text('Make video'));

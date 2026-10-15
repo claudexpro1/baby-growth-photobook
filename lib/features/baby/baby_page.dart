@@ -393,7 +393,10 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                   ageNowLabel(baby.birth, DateTime.now()),
                   style: text.titleMedium,
                 ),
-                Text(bornText(context, baby), style: text.bodyMedium),
+                Text(
+                  '🍼 Our story begins: ${bornText(context, baby)} (a ${_weekday(baby.birth)})',
+                  style: text.bodyMedium,
+                ),
               ],
             ),
           ),
@@ -471,7 +474,7 @@ class _BabyPageState extends ConsumerState<BabyPage> {
     }
     final keys = sections.keys.toList()
       ..sort((a, c) => starts[a]!.compareTo(starts[c]!));
-    final out = <Widget>[_birthStory(context, baby)];
+    final out = <Widget>[];
     for (final k in keys) {
       final e = MapEntry(k, sections[k]!);
       out.add(
@@ -555,36 +558,6 @@ class _BabyPageState extends ConsumerState<BabyPage> {
       );
     }
     return out;
-  }
-
-  Widget _birthStory(BuildContext context, Baby baby) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      color: scheme.primaryContainer.withValues(alpha: 0.45),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Text('🍼', style: TextStyle(fontSize: 28)),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Our story begins',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  Text(
-                    '${baby.name}, ${bornText(context, baby)} (a ${_weekday(baby.birth)}).',
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   String _weekday(DateTime d) => const [
