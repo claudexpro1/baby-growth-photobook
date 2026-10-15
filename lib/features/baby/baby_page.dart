@@ -16,6 +16,8 @@ import '../../domain/milestones.dart';
 import '../common/baby_avatar.dart';
 import '../common/calendar_actions.dart';
 import '../../notifications/reminder_service.dart';
+import '../../ui/adaptive_scaffold.dart';
+import '../../ui/responsive.dart';
 import '../../ui/theme.dart';
 import 'capture.dart';
 import 'edit_baby_page.dart';
@@ -125,182 +127,282 @@ class _BabyPageState extends ConsumerState<BabyPage> {
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(baby.name),
-              actions: [
-                PopupMenuButton<String>(
-                  onSelected: (v) {
-                    switch (v) {
-                      case 'slideshow':
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => SlideshowPage(babyId: baby.id),
-                          ),
-                        );
-                      case 'pdf':
-                        sharePhotobookPdf(context, ref, baby, photos);
-                      case 'link':
-                        showShareLinkSheet(context, ref, baby, photos);
-                      case 'calendar':
-                        _addToGoogleCalendar(baby);
-                      case 'ics':
-                        ReminderService.instance.addToCalendar(baby);
-                      case 'restore':
-                        _sync(restore: true);
-                      case 'edit':
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => EditBabyPage(babyId: baby.id),
-                          ),
-                        );
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    if (photos.length > 1)
-                      const PopupMenuItem(
-                        value: 'slideshow',
-                        child: Text('Play slideshow'),
-                      ),
-                    const PopupMenuItem(
-                      value: 'pdf',
-                      child: Text('Share photobook (PDF)'),
-                    ),
-                    if (baby.storage == StorageMode.googleDrive) ...[
-                      const PopupMenuItem(
-                        value: 'link',
-                        child: Text('Get a share link'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'restore',
-                        child: Text('Restore photos from Drive'),
-                      ),
-                    ],
-                    if (kIsWeb && baby.reminder.enabled)
-                      const PopupMenuItem(
-                        value: 'calendar',
-                        child: Text('Add reminders to Google Calendar'),
-                      ),
-                    if (kIsWeb && baby.reminder.enabled)
-                      const PopupMenuItem(
-                        value: 'ics',
-                        child: Text('Download calendar file (.ics)'),
-                      ),
-                    const PopupMenuItem(value: 'edit', child: Text('Settings')),
-                  ],
-                ),
-              ],
-            ),
-            body: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
+          final desktop = context.isDesktop;
+
+          final identity = _identity(context, baby, photos, big: desktop);
+          final todayCard = Card(
+            color: scheme.primaryContainer.withValues(alpha: 0.5),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    haveToday
+                        ? "Today's photo is saved ♥"
+                        : dueToday
+                        ? "It's photo day!"
+                        : baby.schedule.nextDueAfter(todayUtc) == null
+                        ? 'Finish line reached ♥'
+                        : 'Next photo: ${loc.formatFullDate(baby.schedule.nextDueAfter(todayUtc)!)}',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      BabyAvatar(
-                        baby: baby,
-                        photo: photos.lastOrNull,
-                        size: 72,
-                      ),
-                      const SizedBox(width: 16),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              baby.name,
-                              style: Theme.of(context).textTheme.headlineSmall,
-                            ),
-                            Text(
-                              ageNowLabel(baby.birth, DateTime.now()),
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            Text(
-                              bornText(context, baby),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.photo_camera),
+                          label: Text(haveToday ? 'Retake' : 'Take photo'),
+                          onPressed: () => capturePhoto(
+                            context,
+                            ref,
+                            baby,
+                            ImageSource.camera,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.photo_library_outlined),
+                        label: const Text('From gallery'),
+                        onPressed: () => capturePhoto(
+                          context,
+                          ref,
+                          baby,
+                          ImageSource.gallery,
                         ),
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+          );
+          final where = _WhereCard(
+            baby: baby,
+            photos: photos,
+            syncing: _syncing,
+            onSync: () => _sync(),
+            onConnect: () => _connectDrive(baby),
+          );
+          final timeline = <Widget>[
+            if (desktop)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  'Timeline',
+                  style: Theme.of(context).textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 8),
-                Card(
-                  color: scheme.primaryContainer.withValues(alpha: 0.5),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            if (photos.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  'Your story starts with the first photo.\nIt will appear here.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              )
+            else
+              ..._timeline(context, baby, photos),
+          ];
+
+          final menu = PopupMenuButton<String>(
+            tooltip: 'More',
+            onSelected: (v) => _onMenu(v, baby, photos),
+            itemBuilder: (_) => [
+              if (photos.length > 1)
+                const PopupMenuItem(
+                  value: 'slideshow',
+                  child: Text('Play slideshow'),
+                ),
+              const PopupMenuItem(
+                value: 'pdf',
+                child: Text('Share photobook (PDF)'),
+              ),
+              if (baby.storage == StorageMode.googleDrive) ...[
+                const PopupMenuItem(
+                  value: 'link',
+                  child: Text('Get a share link'),
+                ),
+                const PopupMenuItem(
+                  value: 'restore',
+                  child: Text('Restore photos from Drive'),
+                ),
+              ],
+              if (kIsWeb && baby.reminder.enabled)
+                const PopupMenuItem(
+                  value: 'calendar',
+                  child: Text('Add reminders to Google Calendar'),
+                ),
+              if (kIsWeb && baby.reminder.enabled)
+                const PopupMenuItem(
+                  value: 'ics',
+                  child: Text('Download calendar file (.ics)'),
+                ),
+              const PopupMenuItem(value: 'edit', child: Text('Settings')),
+            ],
+          );
+
+          final Widget body;
+          if (desktop) {
+            body = ContentFrame(
+              maxWidth: 1240,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 372,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(0, 28, 0, 40),
                       children: [
-                        Text(
-                          haveToday
-                              ? "Today's photo is saved ♥"
-                              : dueToday
-                              ? "It's photo day!"
-                              : baby.schedule.nextDueAfter(todayUtc) == null
-                              ? 'Finish line reached ♥'
-                              : 'Next photo: ${loc.formatFullDate(baby.schedule.nextDueAfter(todayUtc)!)}',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton.icon(
-                                icon: const Icon(Icons.photo_camera),
-                                label: Text(
-                                  haveToday ? 'Retake' : 'Take photo',
-                                ),
-                                onPressed: () => capturePhoto(
-                                  context,
-                                  ref,
-                                  baby,
-                                  ImageSource.camera,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            OutlinedButton.icon(
-                              icon: const Icon(Icons.photo_library_outlined),
-                              label: const Text('From gallery'),
-                              onPressed: () => capturePhoto(
-                                context,
-                                ref,
-                                baby,
-                                ImageSource.gallery,
-                              ),
-                            ),
-                          ],
-                        ),
+                        identity,
+                        const SizedBox(height: 8),
+                        todayCard,
+                        where,
+                        _actionsCard(context, baby, photos),
                       ],
                     ),
                   ),
-                ),
-                _WhereCard(
-                  baby: baby,
-                  photos: photos,
-                  syncing: _syncing,
-                  onSync: () => _sync(),
-                  onConnect: () => _connectDrive(baby),
-                ),
-                const SizedBox(height: 8),
-                if (photos.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      'Your story starts with the first photo.\nIt will appear here.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge,
+                  const SizedBox(width: 40),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(0, 28, 0, 56),
+                      children: timeline,
                     ),
-                  )
-                else
-                  ..._timeline(context, baby, photos),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            body = ListView(
+              padding: EdgeInsets.fromLTRB(
+                context.isWide ? 0 : 16,
+                context.isWide ? 24 : 0,
+                context.isWide ? 0 : 16,
+                32,
+              ),
+              children: [
+                identity,
+                const SizedBox(height: 8),
+                todayCard,
+                where,
+                const SizedBox(height: 8),
+                ...timeline,
               ],
-            ),
+            );
+          }
+
+          return AdaptiveScaffold(
+            title: baby.name,
+            actions: [menu],
+            bodyPadded: !desktop,
+            maxWidth: desktop ? 1240 : 760,
+            body: body,
           );
         },
+      ),
+    );
+  }
+
+  void _onMenu(String v, Baby baby, List<PhotoEntry> photos) {
+    switch (v) {
+      case 'slideshow':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => SlideshowPage(babyId: baby.id)),
+        );
+      case 'pdf':
+        sharePhotobookPdf(context, ref, baby, photos);
+      case 'link':
+        showShareLinkSheet(context, ref, baby, photos);
+      case 'calendar':
+        _addToGoogleCalendar(baby);
+      case 'ics':
+        ReminderService.instance.addToCalendar(baby);
+      case 'restore':
+        _sync(restore: true);
+      case 'edit':
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => EditBabyPage(babyId: baby.id)),
+        );
+    }
+  }
+
+  Widget _identity(
+    BuildContext context,
+    Baby baby,
+    List<PhotoEntry> photos, {
+    required bool big,
+  }) {
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: big ? 0 : 8),
+      child: Row(
+        children: [
+          BabyAvatar(
+            baby: baby,
+            photo: photos.lastOrNull,
+            size: big ? 104 : 72,
+          ),
+          SizedBox(width: big ? 20 : 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  baby.name,
+                  style: big
+                      ? text.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        )
+                      : text.headlineSmall,
+                ),
+                Text(
+                  ageNowLabel(baby.birth, DateTime.now()),
+                  style: text.titleMedium,
+                ),
+                Text(bornText(context, baby), style: text.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The things the three-dots menu holds, laid out in plain sight for the
+  /// desktop side panel.
+  Widget _actionsCard(
+    BuildContext context,
+    Baby baby,
+    List<PhotoEntry> photos,
+  ) {
+    Widget tile(IconData icon, String label, String value) => ListTile(
+      dense: true,
+      leading: Icon(icon),
+      title: Text(label),
+      trailing: const Icon(Icons.chevron_right, size: 20),
+      onTap: () => _onMenu(value, baby, photos),
+    );
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          if (photos.length > 1)
+            tile(Icons.slideshow, 'Play slideshow', 'slideshow'),
+          tile(Icons.picture_as_pdf_outlined, 'Share photobook (PDF)', 'pdf'),
+          if (baby.storage == StorageMode.googleDrive)
+            tile(Icons.link, 'Get a share link', 'link'),
+          if (kIsWeb && baby.reminder.enabled)
+            tile(
+              Icons.event_available_outlined,
+              'Add reminders to Google Calendar',
+              'calendar',
+            ),
+          tile(Icons.settings_outlined, 'Settings', 'edit'),
+        ],
       ),
     );
   }
@@ -338,7 +440,11 @@ class _BabyPageState extends ConsumerState<BabyPage> {
       out.add(
         Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 8),
-          child: Text(e.key, style: Theme.of(context).textTheme.titleMedium),
+          child: Text(
+            e.key,
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
         ),
       );
       for (final m in marks[k] ?? const <Milestone>[]) {
@@ -346,12 +452,12 @@ class _BabyPageState extends ConsumerState<BabyPage> {
       }
       if (e.value.isEmpty) continue;
       out.add(
-        GridView.count(
+        GridView.extent(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 3,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
+          maxCrossAxisExtent: context.isWide ? 210 : 150,
+          mainAxisSpacing: context.isWide ? 12 : 8,
+          crossAxisSpacing: context.isWide ? 12 : 8,
           children: [
             for (final p in e.value)
               GestureDetector(

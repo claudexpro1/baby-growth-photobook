@@ -11,6 +11,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../notifications/calendar_status.dart';
+import '../../ui/adaptive_scaffold.dart';
+import '../../ui/responsive.dart';
 import '../common/baby_avatar.dart';
 import '../common/calendar_actions.dart';
 import '../../ui/theme.dart';
@@ -251,66 +253,179 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final babies = ref.watch(babiesProvider);
     final welcome = babies.hasValue && babies.value!.isEmpty;
-    return Scaffold(
-      appBar: welcome
-          ? null
-          : AppBar(
-              title: const Text('Baby Photobook'),
-              actions: [
-                PopupMenuButton<String>(
-                  onSelected: (v) => switch (v) {
-                    'restore' => _restore(),
-                    'logout' => _logOut(),
-                    'disconnect' => _disconnectDrive(),
-                    _ => _deleteAll(),
-                  },
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'restore',
-                      enabled: !_restoring,
-                      child: const Text('Bring back babies from Google Drive'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'logout',
-                      child: Text('Log out'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'disconnect',
-                      child: Text('Disconnect Google Drive'),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete all data on this device'),
-                    ),
-                  ],
-                ),
-              ],
+    final body = babies.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => const Center(child: Text('Could not load your babies.')),
+      data: (list) => list.isEmpty
+          ? WelcomeView(onStart: _add, onRestore: _restore, busy: _restoring)
+          : context.isWide
+          ? _BabyGrid(babies: list, onAdd: _add)
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+              children: [for (final b in list) _BabyCard(b)],
             ),
-      floatingActionButton: babies.hasValue && babies.value!.isNotEmpty
+    );
+    if (welcome) return Scaffold(body: body);
+    return AdaptiveScaffold(
+      title: 'Baby Photobook',
+      showTitle: false,
+      bodyPadded: false,
+      actions: [
+        PopupMenuButton<String>(
+          tooltip: 'Menu',
+          onSelected: (v) => switch (v) {
+            'restore' => _restore(),
+            'logout' => _logOut(),
+            'disconnect' => _disconnectDrive(),
+            _ => _deleteAll(),
+          },
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'restore',
+              enabled: !_restoring,
+              child: const Text('Bring back babies from Google Drive'),
+            ),
+            const PopupMenuItem(value: 'logout', child: Text('Log out')),
+            const PopupMenuItem(
+              value: 'disconnect',
+              child: Text('Disconnect Google Drive'),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              child: Text('Delete all data on this device'),
+            ),
+          ],
+        ),
+      ],
+      floatingActionButton:
+          !context.isWide && babies.hasValue && babies.value!.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _add,
               icon: const Icon(Icons.add),
               label: const Text('Add a baby'),
             )
           : null,
-      body: babies.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) =>
-            const Center(child: Text('Could not load your babies.')),
-        data: (list) => list.isEmpty
-            ? WelcomeView(onStart: _add, onRestore: _restore, busy: _restoring)
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                children: [for (final b in list) _BabyCard(b)],
+      body: body,
+    );
+  }
+}
+
+/// Wide windows: a heading, then the babies as a grid of cards with an
+/// "add" tile at the end.
+class _BabyGrid extends StatelessWidget {
+  const _BabyGrid({required this.babies, required this.onAdd});
+  final List<Baby> babies;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return ContentFrame(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 40, 0, 28),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          babies.length == 1 ? 'Your baby' : 'Your babies',
+                          style: text.headlineLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'One photo at a time, kept in your own Google Drive.',
+                          style: text.bodyLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton.icon(
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add a baby'),
+                  ),
+                ],
               ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.only(bottom: 48),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 560,
+                mainAxisExtent: 196,
+                mainAxisSpacing: 20,
+                crossAxisSpacing: 20,
+              ),
+              delegate: SliverChildListDelegate([
+                for (final b in babies) _BabyCard(b, large: true),
+                _AddBabyTile(onTap: onAdd),
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddBabyTile extends StatelessWidget {
+  const _AddBabyTile({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return HoverLift(
+      child: Material(
+        color: scheme.primaryContainer.withValues(alpha: 0.35),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: scheme.primary.withValues(alpha: 0.35)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: scheme.primary,
+                  child: Icon(Icons.add, color: scheme.onPrimary, size: 30),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Add a baby',
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(color: scheme.primary),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
 class _BabyCard extends ConsumerWidget {
-  const _BabyCard(this.baby);
+  const _BabyCard(this.baby, {this.large = false});
   final Baby baby;
+
+  /// The roomier card used in the desktop grid.
+  final bool large;
 
   /// Tapping the chip checks the calendar and shows the answer.
   Future<void> _openCalendar(BuildContext context, WidgetRef ref) async {
@@ -348,7 +463,8 @@ class _BabyCard extends ConsumerWidget {
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;
-          return Card(
+          final card = Card(
+            margin: large ? EdgeInsets.zero : null,
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: () => Navigator.of(context).push(
@@ -356,68 +472,82 @@ class _BabyCard extends ConsumerWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    BabyAvatar(baby: baby, photo: photos.lastOrNull),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            baby.name,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          Text(birthSummary(context, baby)),
-                          const SizedBox(height: 6),
-                          if (dueToday)
-                            Chip(
-                              label: const Text("Today's photo"),
-                              backgroundColor: scheme.primaryContainer,
-                              visualDensity: VisualDensity.compact,
-                            )
-                          else
-                            Text(
-                              next == null
-                                  ? 'Finish line reached ♥'
-                                  : 'Next photo: ${loc.formatMediumDate(next)}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          if (useGoogleCalendar)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: CalendarChip(
-                                badge: calendarBadge(
-                                  baby,
-                                  ref
-                                      .watch(calendarStatusProvider)
-                                      .value?[baby.id],
-                                ),
-                                onTap: () => _openCalendar(context, ref),
-                              ),
-                            ),
-                          if (baby.storage == StorageMode.appOnly)
-                            Text(
-                              'Only on this phone',
-                              style: TextStyle(
-                                color: scheme.error,
-                                fontSize: 12,
-                              ),
-                            )
-                          else if (waiting > 0)
-                            Text(
-                              '$waiting waiting to upload',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                        ],
+                child: Align(
+                  alignment: large ? Alignment.centerLeft : Alignment.topLeft,
+                  heightFactor: large ? null : 1,
+                  child: Row(
+                    children: [
+                      BabyAvatar(
+                        baby: baby,
+                        photo: photos.lastOrNull,
+                        size: large ? 112 : 84,
                       ),
-                    ),
-                    const Icon(Icons.chevron_right),
-                  ],
+                      SizedBox(width: large ? 20 : 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              baby.name,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            Text(birthSummary(context, baby)),
+                            const SizedBox(height: 6),
+                            if (dueToday)
+                              Chip(
+                                label: const Text("Today's photo"),
+                                backgroundColor: scheme.primaryContainer,
+                                visualDensity: VisualDensity.compact,
+                              )
+                            else
+                              Text(
+                                next == null
+                                    ? 'Finish line reached ♥'
+                                    : 'Next photo: ${loc.formatMediumDate(next)}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            if (large)
+                              Text(
+                                '${photos.length} photo${photos.length == 1 ? '' : 's'}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            if (useGoogleCalendar)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: CalendarChip(
+                                  badge: calendarBadge(
+                                    baby,
+                                    ref
+                                        .watch(calendarStatusProvider)
+                                        .value?[baby.id],
+                                  ),
+                                  onTap: () => _openCalendar(context, ref),
+                                ),
+                              ),
+                            if (baby.storage == StorageMode.appOnly)
+                              Text(
+                                'Only on this phone',
+                                style: TextStyle(
+                                  color: scheme.error,
+                                  fontSize: 12,
+                                ),
+                              )
+                            else if (waiting > 0)
+                              Text(
+                                '$waiting waiting to upload',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
                 ),
               ),
             ),
           );
+          return large ? HoverLift(child: card) : card;
         },
       ),
     );

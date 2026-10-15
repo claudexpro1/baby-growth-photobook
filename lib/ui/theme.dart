@@ -19,11 +19,16 @@ const _creamDark = Color(0xFF1E1613);
 /// The theme for [gender]. Always light: the app keeps its cream-and-orange
 /// look even when the phone is in dark mode. (A dark palette still exists in
 /// [buildTheme] if it is ever offered as a choice.)
-ThemeData themeFor(BuildContext context, Gender gender) => buildTheme(gender);
+ThemeData themeFor(BuildContext context, Gender gender) =>
+    buildTheme(gender, wide: MediaQuery.sizeOf(context).width >= 700);
 
 ThemeData buildTheme(
   Gender gender, {
   Brightness brightness = Brightness.light,
+
+  /// A window wide enough for a website layout: notifications get a sensible
+  /// width instead of spanning the whole window.
+  bool wide = false,
 }) {
   final light = brightness == Brightness.light;
   var scheme = ColorScheme.fromSeed(
@@ -98,6 +103,7 @@ ThemeData buildTheme(
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
+      width: wide ? 560 : null,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
   );

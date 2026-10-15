@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../ui/adaptive_scaffold.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
@@ -170,8 +173,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     ];
     return Theme(
       data: themeFor(context, _gender),
-      child: Scaffold(
-        appBar: AppBar(title: Text(titles[_step])),
+      child: AdaptiveScaffold(
+        title: titles[_step],
+        maxWidth: 720,
         body: SafeArea(
           child: Column(
             children: [

@@ -7,6 +7,8 @@ import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../notifications/calendar_status.dart';
 import '../../notifications/reminder_service.dart';
+import '../../ui/adaptive_scaffold.dart';
+import '../../ui/responsive.dart';
 import '../../ui/theme.dart';
 import '../common/baby_details_form.dart';
 import '../common/calendar_actions.dart';
@@ -258,18 +260,30 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
   Widget build(BuildContext context) {
     return Theme(
       data: themeFor(context, _gender),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Settings'),
-          actions: [
-            TextButton(
+      child: AdaptiveScaffold(
+        title: 'Settings',
+        maxWidth: 760,
+        actions: [
+          // Quiet while nothing changed, a filled button once there is
+          // something to save.
+          if (_dirty || _saving)
+            FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 44),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+              ),
               onPressed: _saving ? null : _save,
               child: Text(_saving ? 'Saving...' : 'Save'),
-            ),
-          ],
-        ),
+            )
+          else
+            TextButton(onPressed: _save, child: const Text('Save')),
+          const SizedBox(width: 8),
+        ],
         body: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.symmetric(
+            horizontal: context.isWide ? 0 : 20,
+            vertical: context.isWide ? 28 : 20,
+          ),
           children: [
             BabyDetailsForm(
               name: _name,

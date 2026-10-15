@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../ui/responsive.dart';
+import 'desktop_welcome.dart';
+
 class _Palette {
   const _Palette(
     this.bg,
@@ -109,6 +112,13 @@ class _WelcomeViewState extends State<WelcomeView> {
         ? _Palette.dark
         : _Palette.light;
     final width = MediaQuery.sizeOf(context).width;
+    if (context.isWide) {
+      return DesktopWelcome(
+        onStart: widget.onStart,
+        onRestore: widget.onRestore,
+        busy: widget.busy,
+      );
+    }
     // On a laptop the content sits in a centred column instead of stretching
     // across the whole window.
     final wide = width > 700;
