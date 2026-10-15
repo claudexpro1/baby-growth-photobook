@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-16: First-time flow: a gentle starting schedule (weekly, then monthly from 6 months) is pre-filled, each onboarding step says "Step n of 4", and after Finish you land on your baby's page where the next steps (Drive, Calendar reminders, first photo) are waiting
 - 2026-10-16: Baby page: new "Backup and reminders" card with one short line each for Google Drive and Reminders that open in place (replaces the big Drive box); a step that is not done yet (connect Drive, reconnect, add reminders to Google Calendar) shows open with its button and a "One step left" note; reminders on/off and time can be changed right there; a gear next to the three dots opens Settings
 - 2026-10-16: Fixed Google's sign-in window flashing open on its own after login: only a tap you make can open it now; background uploads that need a new sign-in show a "Reconnect" button instead
 - 2026-10-16: Drive folders now say "do not edit or delete" in their names (`BabyPhotobook (app folder - do not edit or delete)`, `_App data (do not delete)`) and in their Drive description; folders made earlier are renamed in place on first use (same folder, nothing moved); the app also explains it where the folder is shown

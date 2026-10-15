@@ -95,6 +95,13 @@ void main() {
         () => Future.delayed(const Duration(milliseconds: 500)),
       );
       await tester.pumpAndSettle();
+      // lands on the new baby's page: the next steps are right there
+      expect(find.text('Take photo'), findsOneWidget);
+      expect(find.text('Luna'), findsWidgets);
+      expect(find.text('Saved in Google Drive'), findsOneWidget);
+      // and the baby is on the home list when going back
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       expect(find.text('Luna'), findsOneWidget);
       expect(find.text('Not saved to Drive yet'), findsNothing);
     },

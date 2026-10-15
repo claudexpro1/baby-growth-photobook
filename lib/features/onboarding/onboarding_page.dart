@@ -8,10 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/providers.dart';
 import '../../domain/baby.dart';
 import '../../domain/schedule.dart';
+import '../../notifications/calendar_status.dart';
 import '../../notifications/reminder_service.dart';
 import '../../ui/theme.dart';
 import '../common/baby_details_form.dart';
 import '../common/drive_consent.dart';
+import '../baby/baby_page.dart';
 import '../common/schedule_editor.dart';
 
 export '../common/baby_details_form.dart' show birthDateFirst, birthDateLast;
@@ -35,8 +37,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   bool _connecting = false;
   bool _saving = false;
   var _reminder = const ReminderSettings();
+  // A gentle suggestion to start with: every week, then every month from six
+  // months. Every part can be changed in the next steps.
   final List<PhaseDraft> _phases = [
     PhaseDraft(0, TimeUnit.day, 1, TimeUnit.week),
+    PhaseDraft(6, TimeUnit.month, 1, TimeUnit.month),
   ];
   final _finish = FinishDraft();
   String? _error;
@@ -97,11 +102,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         );
       }
     }
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
     await ref
         .read(babiesProvider.notifier)
         .add(
           Baby(
-            id: DateTime.now().microsecondsSinceEpoch.toString(),
+            id: id,
             name: _name.text.trim(),
             gender: _gender,
             birth: _birth,
@@ -112,7 +118,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             storage: _storage!,
           ),
         );
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    // Straight to the baby's page: the next steps (reminders in Calendar, the
+    // first photo) are right there, so nobody has to find the new baby first.
+    final nav = Navigator.of(context);
+    nav.pushReplacement(
+      MaterialPageRoute(builder: (_) => BabyPage(babyId: id)),
+    );
   }
 
   Future<void> _chooseDrive() async {
@@ -163,15 +175,29 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   child: ListView(
                     padding: EdgeInsets.all(context.isWide ? 32 : 20),
                     children: [
-                      if (context.isWide)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: Text(
-                            titles[_step],
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Step ${_step + 1} of 4',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary,
+                                  ),
+                            ),
+                            if (context.isWide)
+                              Text(
+                                titles[_step],
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                          ],
                         ),
+                      ),
                       [
                         _aboutStep,
                         _storageStep,
@@ -320,8 +346,21 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     onChanged: () => setState(() => _error = null),
   );
 
-  Widget _reminderStep() => ReminderEditor(
-    value: _reminder,
-    onChanged: (r) => setState(() => _reminder = r),
+  Widget _reminderStep() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ReminderEditor(
+        value: _reminder,
+        onChanged: (r) => setState(() => _reminder = r),
+      ),
+      if (useGoogleCalendar && _reminder.enabled)
+        const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text(
+            'Next, on your baby\'s page, one tap puts the reminders into your '
+            'Google Calendar. Everything here can be changed later in Settings.',
+          ),
+        ),
+    ],
   );
 }
