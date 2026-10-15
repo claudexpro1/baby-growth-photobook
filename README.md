@@ -73,7 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
-
+- 2026-10-16: Baby page: the birth line ("Our story begins: born … (a Monday)") is shown once in the header; the duplicate card in the timeline is gone, which saves space on phones
 - 2026-10-15: Layout audit at 13 window sizes (phones, tablets, laptops, landscape): fixed the landing page alignment on narrow windows, long baby names on the home cards, and the photo buttons on very narrow phones; a test now checks every main screen at all those sizes
 - 2026-10-15: Timelapse video: "Make timelapse video" turns all photos into one MP4/WebM in the browser (speed, optional age on each photo) and downloads it; nothing leaves the device
 - 2026-10-15: In-app camera with a ghost overlay: the last (or first) photo shows see-through over the live view so every photo lines up; falls back to the camera app. Also fixed the alignment of the "Private by design" cards
