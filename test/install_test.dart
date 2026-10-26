@@ -18,8 +18,8 @@ void main() {
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     await t.pumpWidget(const MaterialApp(home: Scaffold(body: InstallSteps())));
-    expect(find.text('iPhone'), findsOneWidget);
-    expect(find.text('Android'), findsOneWidget);
+    expect(find.text('iPhone (Safari or Chrome)'), findsOneWidget);
+    expect(find.text('Android (Chrome)'), findsOneWidget);
     expect(find.textContaining('Add to Home Screen'), findsOneWidget);
     expect(find.textContaining('Install app'), findsOneWidget);
   });
@@ -30,8 +30,8 @@ void main() {
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     await t.pumpWidget(const MaterialApp(home: Scaffold(body: InstallSteps())));
-    final iphoneY = t.getTopLeft(find.text('iPhone')).dy;
-    final androidY = t.getTopLeft(find.text('Android')).dy;
+    final iphoneY = t.getTopLeft(find.text('iPhone (Safari or Chrome)')).dy;
+    final androidY = t.getTopLeft(find.text('Android (Chrome)')).dy;
     debugDefaultTargetPlatformOverride = null;
     expect(iphoneY, lessThan(androidY));
   });

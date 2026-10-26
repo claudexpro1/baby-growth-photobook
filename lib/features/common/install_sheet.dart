@@ -12,26 +12,22 @@ class InstallSteps extends StatelessWidget {
   const InstallSteps({super.key});
 
   static const iphone = _Platform(
-    title: 'iPhone',
+    title: 'iPhone (Safari or Chrome)',
     icon: Icons.phone_iphone,
     steps: [
-      'Open this page in Safari (best). Chrome on iPhone also works if your '
-          'iPhone has iOS 16.4 or newer.',
-      'Tap the Share button (a square with an arrow pointing up): at the '
-          'bottom of the screen in Safari, next to the address in Chrome.',
-      'Scroll down and tap "Add to Home Screen".',
-      'Tap "Add". The Baby Photobook icon is now on your home screen.',
+      'Open this page in Safari or Chrome.',
+      'Tap the Share button (a square with an arrow pointing up).',
+      'Tap "Add to Home Screen", then "Add".',
     ],
   );
 
   static const android = _Platform(
-    title: 'Android',
+    title: 'Android (Chrome)',
     icon: Icons.phone_android,
     steps: [
       'Open this page in Chrome.',
       'Tap the three dots (⋮) at the top right.',
-      'Tap "Install app". On some phones it says "Add to Home screen".',
-      'Tap "Install". The Baby Photobook icon is now on your home screen.',
+      'Tap "Install app" (or "Add to Home screen"), then "Install".',
     ],
   );
 
