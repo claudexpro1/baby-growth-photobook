@@ -163,7 +163,6 @@ void main() {
     birth: DateTime.now().subtract(const Duration(days: 40)),
     birthPlace: 'Athens',
     phases: const [Phase(start: Age.birth, frequency: Frequency.daily)],
-    storage: StorageMode.googleDrive,
   );
   final second = Baby(
     id: 'b',
@@ -171,7 +170,6 @@ void main() {
     gender: Gender.boy,
     birth: DateTime.now().subtract(const Duration(days: 9)),
     phases: const [Phase(start: Age.birth, frequency: Frequency.weekly)],
-    storage: StorageMode.googleDrive,
   );
 
   Future<void> show(

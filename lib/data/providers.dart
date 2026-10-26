@@ -69,9 +69,7 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
 
   /// Saves the profile (and any waiting photos) to Drive in the background.
   void _backup(Baby baby) {
-    if (baby.storage == StorageMode.googleDrive) {
-      unawaited(ref.read(photosProvider(baby.id).notifier).sync());
-    }
+    unawaited(ref.read(photosProvider(baby.id).notifier).sync());
   }
 
   /// Brings back babies saved in the user's Drive, with their photos.
@@ -276,7 +274,7 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
     final baby = _baby;
     await (await _lib).delete(p);
     await _refresh();
-    if (baby != null && baby.storage == StorageMode.googleDrive) {
+    if (baby != null) {
       try {
         await PhotoSync(ref.read(cloudProvider)).delete(baby, p.name);
       } catch (_) {
@@ -302,8 +300,8 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
 
   Future<SyncOutcome> _sync({bool restore = false}) async {
     final baby = _baby;
-    if (baby == null || baby.storage != StorageMode.googleDrive) {
-      return const SyncOutcome('Photos are kept in this app only.');
+    if (baby == null) {
+      return const SyncOutcome('Baby not found.', ok: false);
     }
     final cloud = ref.read(cloudProvider);
     try {

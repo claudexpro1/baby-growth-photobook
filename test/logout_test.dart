@@ -19,17 +19,16 @@ class _Cloud extends FakeCloud {
   Future<void> signOut() async => signOuts++;
 }
 
-Baby _baby(StorageMode mode) => Baby(
+Baby _baby() => Baby(
   id: 'b',
   name: 'Luna',
   gender: Gender.girl,
   birth: DateTime(2026, 10, 10),
   phases: const [Phase(start: Age.birth, frequency: Frequency.daily)],
-  storage: mode,
 );
 
 void main() {
-  Future<(MemoryStore, _Cloud)> open(WidgetTester t, StorageMode mode) async {
+  Future<(MemoryStore, _Cloud)> open(WidgetTester t) async {
     await t.binding.setSurfaceSize(const Size(420, 900));
     final store = MemoryStore();
     store.data['photos/b/00001_2026-10-10.jpg'] = Uint8List.fromList([1]);
@@ -39,7 +38,7 @@ void main() {
     );
     store.data['calendar_status.json'] = Uint8List.fromList([2]);
     final cloud = _Cloud();
-    final repo = MemoryRepository()..data = [_baby(mode)];
+    final repo = MemoryRepository()..data = [_baby()];
     await t.pumpWidget(
       ProviderScope(
         overrides: [
@@ -60,7 +59,7 @@ void main() {
   }
 
   testWidgets('log out signs out, clears this device, keeps Drive', (t) async {
-    final (store, cloud) = await open(t, StorageMode.googleDrive);
+    final (store, cloud) = await open(t);
     expect(find.textContaining('Nothing is deleted'), findsOneWidget);
     await t.tap(find.widgetWithText(FilledButton, 'Log out'));
     await t.runAsync(() => Future.delayed(const Duration(milliseconds: 200)));
@@ -69,17 +68,5 @@ void main() {
     expect(store.data, isEmpty);
     expect(find.text('Luna'), findsNothing);
     expect(find.text('I already registered my baby'), findsOneWidget);
-  });
-
-  testWidgets('babies only kept on this device block the log out', (t) async {
-    final (store, cloud) = await open(t, StorageMode.appOnly);
-    expect(find.text('Not yet'), findsOneWidget);
-    expect(find.textContaining('only kept on this device'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, 'Log out'), findsNothing);
-    await t.tap(find.text('OK'));
-    await t.pumpAndSettle();
-    expect(cloud.signOuts, 0);
-    expect(store.data, isNotEmpty);
-    expect(find.text('Luna'), findsOneWidget);
   });
 }

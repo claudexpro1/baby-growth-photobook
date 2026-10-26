@@ -160,7 +160,6 @@ class PhotoSync {
       final json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
       final b = Baby.fromJson(json);
       return b.copyWith(
-        storage: StorageMode.googleDrive,
         driveFolderId: folderId ?? b.driveFolderId,
       );
     }

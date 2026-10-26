@@ -30,7 +30,6 @@ Baby _baby() => Baby(
   gender: Gender.girl,
   birth: DateTime(2026, 10, 10),
   phases: const [Phase(start: Age.birth, frequency: Frequency.daily)],
-  storage: StorageMode.googleDrive,
 );
 
 void main() {

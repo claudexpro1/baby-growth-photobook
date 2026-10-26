@@ -2,9 +2,6 @@ import 'schedule.dart';
 
 enum Gender { girl, boy, neutral }
 
-/// Where this baby's photos live.
-enum StorageMode { googleDrive, iCloud, appOnly }
-
 class ReminderSettings {
   const ReminderSettings({
     this.enabled = true,
@@ -45,7 +42,6 @@ class Baby {
     required this.phases,
     this.end,
     this.reminder = const ReminderSettings(),
-    this.storage = StorageMode.appOnly,
     this.driveFolderId,
     this.driveFolderName,
     this.driveSharedFolderId,
@@ -64,7 +60,6 @@ class Baby {
   /// Finish line: the age at which the photo series stops (null: never).
   final Age? end;
   final ReminderSettings reminder;
-  final StorageMode storage;
 
   /// Google Drive folder ids (set once the folders have been created).
   final String? driveFolderId;
@@ -85,7 +80,6 @@ class Baby {
     Age? end,
     bool clearEnd = false,
     ReminderSettings? reminder,
-    StorageMode? storage,
     String? driveFolderId,
     String? driveFolderName,
     String? driveSharedFolderId,
@@ -100,7 +94,6 @@ class Baby {
     phases: phases ?? this.phases,
     end: clearEnd ? null : (end ?? this.end),
     reminder: reminder ?? this.reminder,
-    storage: storage ?? this.storage,
     driveFolderId: driveFolderId ?? this.driveFolderId,
     driveFolderName: driveFolderName ?? this.driveFolderName,
     driveSharedFolderId: driveSharedFolderId ?? this.driveSharedFolderId,
@@ -120,7 +113,6 @@ class Baby {
     'phases': phases.map(phaseToJson).toList(),
     if (end != null) 'end': {'value': end!.value, 'unit': end!.unit.name},
     'reminder': reminder.toJson(),
-    'storage': storage.name,
     'driveFolderId': driveFolderId,
     'driveFolderName': driveFolderName,
     'driveSharedFolderId': driveSharedFolderId,
@@ -145,7 +137,6 @@ class Baby {
             ),
           ),
     reminder: ReminderSettings.fromJson(j['reminder'] as Map<String, dynamic>),
-    storage: StorageMode.values.byName(j['storage'] as String),
     driveFolderId: j['driveFolderId'] as String?,
     driveFolderName: j['driveFolderName'] as String?,
     driveSharedFolderId: j['driveSharedFolderId'] as String?,

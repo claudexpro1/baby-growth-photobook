@@ -12,13 +12,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'app_flow_test.dart' show MemoryRepository;
 import 'photo_sync_test.dart' show FakeCloud;
 
-Baby _baby(StorageMode mode, {bool reminders = true}) => Baby(
+Baby _baby({bool reminders = true}) => Baby(
   id: 'a',
   name: 'Anna',
   gender: Gender.girl,
   birth: DateTime.now().subtract(const Duration(days: 4)),
   phases: const [Phase(start: Age.birth, frequency: Frequency.weekly)],
-  storage: mode,
   reminder: ReminderSettings(enabled: reminders),
 );
 
@@ -52,7 +51,7 @@ void main() {
   testWidgets('Drive connected: one quiet line, details open in place', (
     t,
   ) async {
-    await open(t, _baby(StorageMode.googleDrive));
+    await open(t, _baby());
     expect(find.text('Saved in Google Drive'), findsOneWidget);
     expect(find.text('Connect Google Drive'), findsNothing);
     expect(find.textContaining('steps left'), findsNothing);
@@ -75,7 +74,7 @@ void main() {
   testWidgets('reminders are a line on the page that opens in place', (
     t,
   ) async {
-    await open(t, _baby(StorageMode.googleDrive));
+    await open(t, _baby());
     expect(find.textContaining('Reminders at'), findsOneWidget);
     expect(find.text('Time of day'), findsNothing);
     await t.tap(find.textContaining('Reminders at'));
@@ -86,7 +85,7 @@ void main() {
   });
 
   testWidgets('switching reminders off on the page saves at once', (t) async {
-    final c = await open(t, _baby(StorageMode.googleDrive));
+    final c = await open(t, _baby());
     await t.tap(find.textContaining('Reminders at'));
     await t.pumpAndSettle();
     await t.tap(find.byType(Switch));
@@ -95,17 +94,10 @@ void main() {
     expect(find.text('Reminders are off'), findsOneWidget);
   });
 
-  testWidgets('no Drive yet: the step is open with its button', (t) async {
-    await open(t, _baby(StorageMode.appOnly));
-    expect(find.text('One step left'), findsOneWidget);
-    expect(find.text('Photos are only on this device'), findsOneWidget);
-    expect(find.text('Connect Google Drive'), findsOneWidget);
-  });
-
   testWidgets('Google sign-in lapsed: a Reconnect button, no pop-up', (
     t,
   ) async {
-    final c = await open(t, _baby(StorageMode.googleDrive));
+    final c = await open(t, _baby());
     c.read(driveReconnectProvider.notifier).set(true);
     await t.pumpAndSettle();
     expect(find.text('Reconnect to Google Drive'), findsOneWidget);
@@ -117,20 +109,22 @@ void main() {
     t,
   ) async {
     useGoogleCalendar = true;
-    await open(t, _baby(StorageMode.googleDrive));
+    await open(t, _baby());
     expect(find.text('One step left'), findsOneWidget);
     expect(find.text('Add reminders to your Google Calendar'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Add reminders'), findsOneWidget);
   });
 
-  testWidgets('web: Drive and Calendar both missing: two steps', (t) async {
+  testWidgets('web: Drive reconnect and Calendar both open: two steps', (t) async {
     useGoogleCalendar = true;
-    await open(t, _baby(StorageMode.appOnly));
+    final c = await open(t, _baby());
+    c.read(driveReconnectProvider.notifier).set(true);
+    await t.pumpAndSettle();
     expect(find.text('Two steps left'), findsOneWidget);
   });
 
   testWidgets('a gear next to the three dots opens Settings', (t) async {
-    await open(t, _baby(StorageMode.googleDrive));
+    await open(t, _baby());
     expect(find.byTooltip('Settings'), findsOneWidget);
     expect(find.byTooltip('More'), findsOneWidget);
     await t.tap(find.byTooltip('Settings'));

@@ -19,7 +19,6 @@ void main() {
     gender: Gender.girl,
     birth: DateTime(2026, 10, 10),
     phases: const [Phase(start: Age.birth, frequency: Frequency.daily)],
-    storage: StorageMode.googleDrive,
   );
   Uint8List bytes(int v) => Uint8List.fromList([v, v, v]);
 

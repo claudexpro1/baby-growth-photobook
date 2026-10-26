@@ -33,7 +33,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Gender _gender = Gender.neutral;
   DateTime _birthDate = DateTime.now();
   TimeOfDay _birthTime = TimeOfDay.now();
-  StorageMode? _storage;
+  bool _driveConnected = false;
   bool _connecting = false;
   bool _saving = false;
   var _reminder = const ReminderSettings();
@@ -68,7 +68,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ? "Please enter your baby's name."
             : null;
       case 1:
-        return _storage == null
+        return !_driveConnected
             ? 'Please connect Google Drive to continue. The app needs a Google '
                   'account to keep your photos.'
             : null;
@@ -115,7 +115,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             phases: _phases.map((p) => p.toPhase()).toList(),
             end: _finish.toAge(),
             reminder: _reminder,
-            storage: _storage!,
           ),
         );
     if (!mounted) return;
@@ -140,7 +139,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     try {
       final cloud = ref.read(cloudProvider);
       if (!await cloud.isSignedIn()) await cloud.signIn();
-      setState(() => _storage = StorageMode.googleDrive);
+      setState(() => _driveConnected = true);
     } catch (_) {
       if (!mounted) return;
       setState(
@@ -275,7 +274,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   Widget _storageStep() {
     final scheme = Theme.of(context).colorScheme;
-    final connected = _storage == StorageMode.googleDrive;
+    final connected = _driveConnected;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

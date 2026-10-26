@@ -187,10 +187,9 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
 
   Future<void> _delete() async {
     final baby = _current;
-    final onDrive = baby.storage == StorageMode.googleDrive;
     final photos = ref.read(photosProvider(baby.id)).value ?? [];
     final waiting = photos.where((p) => !p.synced).length;
-    if (onDrive && waiting > 0) {
+    if (waiting > 0) {
       await showDialog<void>(
         context: context,
         builder: (c) => AlertDialog(
@@ -216,12 +215,8 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
         title: Text('Remove ${baby.name}?'),
         content: Text(
           [
-            if (onDrive)
-              'This removes ${baby.name} and the photos cached on this phone. '
-                  'The photos already in your Google Drive folder are not deleted.'
-            else
-              'This removes ${baby.name} and all photos stored in this app. '
-                  'Photos kept only in the app cannot be recovered.',
+            'This removes ${baby.name} and the photos cached on this phone. '
+                'The photos already in your Google Drive folder are not deleted.',
             if (baby.driveSharedFolderId != null)
               'The share link will be switched off.',
           ].join('\n\n'),
@@ -302,21 +297,9 @@ class _EditBabyPageState extends ConsumerState<EditBabyPage> {
               const SizedBox(height: 8),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  _baby.storage == StorageMode.googleDrive
-                      ? Icons.cloud_done_outlined
-                      : Icons.phone_android,
-                ),
-                title: Text(
-                  _baby.storage == StorageMode.googleDrive
-                      ? 'Photos are kept in your Google Drive'
-                      : 'Photos are only kept in this app',
-                ),
-                subtitle: Text(
-                  _baby.storage == StorageMode.googleDrive
-                      ? 'In the BabyPhotobook folder of your Drive.'
-                      : 'Open ${_baby.name}\'s page and tap "Connect Google Drive" to keep them safe.',
-                ),
+                leading: const Icon(Icons.cloud_done_outlined),
+                title: const Text('Photos are kept in your Google Drive'),
+                subtitle: const Text('In the BabyPhotobook folder of your Drive.'),
               ),
             ];
             final schedule = <Widget>[

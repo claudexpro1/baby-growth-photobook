@@ -101,7 +101,6 @@ void main() {
     gender: Gender.girl,
     birth: DateTime(2026, 10, 10),
     phases: const [Phase(start: Age.birth, frequency: Frequency.daily)],
-    storage: StorageMode.googleDrive,
   );
   Uint8List bytes(int v) => Uint8List.fromList([v, v, v]);
 
@@ -228,7 +227,6 @@ void main() {
       expect(found.single.id, 'b');
       expect(found.single.name, 'Luna');
       expect(found.single.driveFolderId, 'folder-1');
-      expect(found.single.storage, StorageMode.googleDrive);
       expect(found.single.phases, hasLength(1));
 
       final fresh = PhotoLibrary(MemoryStore(), 'photos/b');
@@ -271,7 +269,6 @@ void main() {
       gender: Gender.girl,
       birth: DateTime(2027, 3, 4),
       phases: baby.phases,
-      storage: StorageMode.googleDrive,
     );
     final cloud = FakeCloud();
     await PhotoSync(cloud).upload(baby, lib, allBabies: [baby, twin]);

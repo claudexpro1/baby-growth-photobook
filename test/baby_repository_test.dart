@@ -22,7 +22,6 @@ void main() {
       ),
     ],
     reminder: const ReminderSettings(enabled: false, hour: 9, minute: 15),
-    storage: StorageMode.googleDrive,
   );
 
   test('empty when nothing saved', () async {
@@ -38,7 +37,6 @@ void main() {
     expect(b.birth, DateTime(2026, 10, 10, 14, 30));
     expect(b.birthPlace, 'Tallinn');
     expect(b.gender, Gender.girl);
-    expect(b.storage, StorageMode.googleDrive);
     expect(b.reminder.enabled, isFalse);
     expect(b.reminder.hour, 9);
     expect(b.phases[1].frequency.every, 2);

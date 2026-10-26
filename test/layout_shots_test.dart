@@ -158,7 +158,6 @@ void main() {
       Phase(start: Age.birth, frequency: Frequency.daily),
       Phase(start: Age(1, TimeUnit.month), frequency: Frequency.weekly),
     ],
-    storage: StorageMode.googleDrive,
     driveFolderId: 'f',
   );
   final second = Baby(
@@ -167,7 +166,6 @@ void main() {
     gender: Gender.boy,
     birth: DateTime.now().subtract(const Duration(days: 9)),
     phases: const [Phase(start: Age.birth, frequency: Frequency.weekly)],
-    storage: StorageMode.googleDrive,
   );
 
   Future<void> shot(WidgetTester t, String name) async {

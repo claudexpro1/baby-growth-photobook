@@ -21,7 +21,6 @@ class BackupAndReminders extends ConsumerWidget {
     required this.photos,
     required this.syncing,
     required this.onSync,
-    required this.onConnect,
     required this.onReconnect,
     required this.onUpdateCalendar,
     required this.onSettings,
@@ -31,7 +30,6 @@ class BackupAndReminders extends ConsumerWidget {
   final List<PhotoEntry> photos;
   final bool syncing;
   final VoidCallback onSync;
-  final VoidCallback onConnect;
   final VoidCallback onReconnect;
 
   /// Puts the reminders into Google Calendar (runs inside a tap).
@@ -47,10 +45,9 @@ class BackupAndReminders extends ConsumerWidget {
     final reconnect = ref.watch(driveReconnectProvider);
     final last = ref.watch(calendarStatusProvider).value?[baby.id];
     final badge = calendarBadge(baby, last);
-    final onDrive = baby.storage == StorageMode.googleDrive;
     final waiting = photos.where((p) => !p.synced).length;
 
-    final driveTodo = !onDrive || reconnect;
+    final driveTodo = reconnect;
     final calendarTodo =
         useGoogleCalendar &&
         baby.reminder.enabled &&
@@ -58,19 +55,7 @@ class BackupAndReminders extends ConsumerWidget {
     final todo = (driveTodo ? 1 : 0) + (calendarTodo ? 1 : 0);
 
     final rows = <Widget>[
-      if (!onDrive)
-        _AttentionRow(
-          icon: Icons.cloud_off_outlined,
-          title: 'Photos are only on this device',
-          text:
-              'If this browser\'s data is cleared or the device is lost, '
-              'they are lost too. Connect Google Drive to keep them safe in '
-              'your own account.',
-          button: 'Connect Google Drive',
-          onPressed: onConnect,
-          color: scheme.errorContainer.withValues(alpha: 0.5),
-        )
-      else if (reconnect)
+      if (reconnect)
         _AttentionRow(
           icon: Icons.cloud_sync_outlined,
           title: 'Reconnect to Google Drive',

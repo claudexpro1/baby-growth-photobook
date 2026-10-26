@@ -90,18 +90,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<void> _logOut() async {
     final babies = ref.read(babiesProvider).value ?? [];
-    final local = [
-      for (final b in babies)
-        if (b.storage != StorageMode.googleDrive) b.name,
-    ];
     final waiting = <String>[];
-    for (final b in babies.where((b) => b.storage == StorageMode.googleDrive)) {
+    for (final b in babies) {
       final n = (ref.read(photosProvider(b.id)).value ?? [])
           .where((p) => !p.synced)
           .length;
       if (n > 0) waiting.add('${b.name} ($n)');
     }
-    final blocked = local.isNotEmpty || waiting.isNotEmpty;
+    final blocked = waiting.isNotEmpty;
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -109,12 +105,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         content: Text(
           blocked
               ? [
-                  if (local.isNotEmpty)
-                    'These babies are only kept on this device, so logging out '
-                        'would lose them: ${local.join(', ')}. Connect Google Drive for them first.',
-                  if (waiting.isNotEmpty)
-                    'Not uploaded to Drive yet: ${waiting.join(', ')}. Wait '
-                        'for the upload, then log out.',
+                  'Not uploaded to Drive yet: ${waiting.join(', ')}. Wait '
+                      'for the upload, then log out.',
                 ].join('\n\n')
               : 'You are signed out of Google and this device forgets your babies '
                     'and photos.\n\nNothing is deleted: your photos stay in your '
@@ -145,7 +137,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> _deleteAll() async {
     final babies = ref.read(babiesProvider).value ?? [];
     final waiting = <String>[];
-    for (final b in babies.where((b) => b.storage == StorageMode.googleDrive)) {
+    for (final b in babies) {
       final n = (ref.read(photosProvider(b.id)).value ?? [])
           .where((p) => !p.synced)
           .length;
@@ -482,15 +474,7 @@ class _BabyCard extends ConsumerWidget {
                                   onTap: () => _openCalendar(context, ref),
                                 ),
                               ),
-                            if (baby.storage == StorageMode.appOnly)
-                              Text(
-                                'Not saved to Drive yet',
-                                style: TextStyle(
-                                  color: scheme.error,
-                                  fontSize: 12,
-                                ),
-                              )
-                            else if (waiting > 0)
+                            if (waiting > 0)
                               Text(
                                 '$waiting waiting to upload',
                                 style: const TextStyle(fontSize: 12),

@@ -42,7 +42,6 @@ void main() {
       gender: Gender.girl,
       birth: DateTime(2026, 10, 10),
       phases: const [Phase(start: Age.birth, frequency: Frequency.daily)],
-      storage: StorageMode.googleDrive,
     );
     cloud.appData['profile_b.json'] = Uint8List.fromList(
       utf8.encode(jsonEncode(saved.toJson())),

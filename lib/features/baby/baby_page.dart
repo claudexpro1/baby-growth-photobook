@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-import '../common/drive_consent.dart';
 import '../common/photo_image.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,8 +56,7 @@ class _BabyPageState extends ConsumerState<BabyPage> {
             .value
             ?.where((b) => b.id == widget.babyId)
             .firstOrNull;
-        if (baby?.storage == StorageMode.googleDrive &&
-            !await cloud.isSignedIn()) {
+        if (baby != null && !await cloud.isSignedIn()) {
           await cloud.signIn();
           ref.read(driveReconnectProvider.notifier).set(false);
         }
@@ -108,31 +106,6 @@ class _BabyPageState extends ConsumerState<BabyPage> {
               : null,
         ),
       );
-  }
-
-  Future<void> _connectDrive(Baby baby) async {
-    if (!await ref.read(cloudProvider).isSignedIn() &&
-        !(mounted && await showDriveConsent(context))) {
-      return;
-    }
-    try {
-      final cloud = ref.read(cloudProvider);
-      if (!await cloud.isSignedIn()) await cloud.signIn();
-      await ref
-          .read(babiesProvider.notifier)
-          .updateBaby(baby.copyWith(storage: StorageMode.googleDrive));
-      await _sync();
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'We could not connect to Google Drive. Please try again.',
-            ),
-          ),
-        );
-      }
-    }
   }
 
   @override
@@ -228,7 +201,6 @@ class _BabyPageState extends ConsumerState<BabyPage> {
             photos: photos,
             syncing: _syncing,
             onSync: () => _sync(),
-            onConnect: () => _connectDrive(baby),
             onReconnect: () => _sync(),
             onUpdateCalendar: () => _addToGoogleCalendar(baby),
             onSettings: () => _onMenu('edit', baby, photos),
@@ -275,16 +247,14 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                 value: 'pdf',
                 child: Text('Share photobook (PDF)'),
               ),
-              if (baby.storage == StorageMode.googleDrive) ...[
-                const PopupMenuItem(
-                  value: 'link',
-                  child: Text('Get a share link'),
-                ),
-                const PopupMenuItem(
-                  value: 'restore',
-                  child: Text('Restore photos from Drive'),
-                ),
-              ],
+              const PopupMenuItem(
+                value: 'link',
+                child: Text('Get a share link'),
+              ),
+              const PopupMenuItem(
+                value: 'restore',
+                child: Text('Restore photos from Drive'),
+              ),
               if (kIsWeb && baby.reminder.enabled)
                 const PopupMenuItem(
                   value: 'ics',
@@ -464,8 +434,7 @@ class _BabyPageState extends ConsumerState<BabyPage> {
               'timelapse',
             ),
           tile(Icons.picture_as_pdf_outlined, 'Share photobook (PDF)', 'pdf'),
-          if (baby.storage == StorageMode.googleDrive)
-            tile(Icons.link, 'Get a share link', 'link'),
+          tile(Icons.link, 'Get a share link', 'link'),
           tile(Icons.settings_outlined, 'Settings', 'edit'),
         ],
       ),
@@ -564,7 +533,7 @@ class _BabyPageState extends ConsumerState<BabyPage> {
                           ),
                         ),
                       ),
-                      if (!p.synced && baby.storage == StorageMode.googleDrive)
+                      if (!p.synced)
                         const Positioned(
                           top: 6,
                           right: 6,
