@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../ui/responsive.dart';
+import '../common/install_info.dart';
+import '../common/install_sheet.dart';
 import 'desktop_welcome.dart';
 
 class _Palette {
@@ -266,6 +268,15 @@ class _WelcomeViewState extends State<WelcomeView> {
                                   color: c.text,
                                 ),
                               ),
+                              if (!isInstalledApp())
+                                TextButton.icon(
+                                  onPressed: () => showInstallSheet(context),
+                                  icon: const Icon(Icons.install_mobile),
+                                  label: const Text('Install on your phone'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: c.accent,
+                                  ),
+                                ),
                             ],
                           ),
                         ),

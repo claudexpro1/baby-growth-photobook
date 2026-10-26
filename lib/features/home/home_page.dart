@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
 import '../common/drive_consent.dart';
+import '../common/install_info.dart';
+import '../common/install_sheet.dart';
 import 'welcome_view.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -214,7 +217,10 @@ class _HomePageState extends ConsumerState<HomePage> {
           ? _BabyGrid(babies: list, onAdd: _add)
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-              children: [for (final b in list) _BabyCard(b)],
+              children: [
+                if (!isInstalledApp()) const _InstallBanner(),
+                for (final b in list) _BabyCard(b),
+              ],
             ),
     );
     if (welcome) return Scaffold(body: body);
@@ -227,6 +233,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           tooltip: 'Menu',
           onSelected: (v) => switch (v) {
             'restore' => _restore(),
+            'install' => showInstallSheet(context),
             'logout' => _logOut(),
             _ => _deleteAll(),
           },
@@ -236,6 +243,11 @@ class _HomePageState extends ConsumerState<HomePage> {
               enabled: !_restoring,
               child: const Text('Bring back babies from Google Drive'),
             ),
+            if (!isInstalledApp())
+              const PopupMenuItem(
+                value: 'install',
+                child: Text('Install on your phone'),
+              ),
             const PopupMenuItem(value: 'logout', child: Text('Log out')),
             PopupMenuItem(
               value: 'delete',
@@ -378,9 +390,8 @@ class _BabyCard extends ConsumerWidget {
   Future<void> _openCalendar(BuildContext context, WidgetRef ref) async {
     if (baby.googleCalendarId == null || !baby.reminder.enabled) {
       // The baby page shows the reminder step open, with its button.
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => BabyPage(babyId: baby.id)));
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => BabyPage(babyId: baby.id)));
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
@@ -491,6 +502,93 @@ class _BabyCard extends ConsumerWidget {
           );
           return large ? HoverLift(child: card) : card;
         },
+      ),
+    );
+  }
+}
+
+/// A one-time hint on phones: put the app on the home screen. "Not now" hides
+/// it for good; the menu entry "Install on your phone" stays.
+class _InstallBanner extends ConsumerStatefulWidget {
+  const _InstallBanner();
+
+  @override
+  ConsumerState<_InstallBanner> createState() => _InstallBannerState();
+}
+
+class _InstallBannerState extends ConsumerState<_InstallBanner> {
+  static const _key = 'install_banner_dismissed';
+  bool _hidden = true; // hidden until we know it was not dismissed
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final store = await ref.read(localStoreProvider.future);
+      final seen = await store.read(_key) != null;
+      if (mounted && !seen) setState(() => _hidden = false);
+    } catch (_) {
+      /* storage unavailable: no banner */
+    }
+  }
+
+  Future<void> _dismiss() async {
+    setState(() => _hidden = true);
+    try {
+      final store = await ref.read(localStoreProvider.future);
+      await store.write(_key, Uint8List.fromList([1]));
+    } catch (_) {
+      /* it simply shows again next time */
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hidden) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(top: 8, bottom: 4),
+      color: scheme.primaryContainer.withValues(alpha: 0.5),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.install_mobile),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Add Baby Photobook to your home screen',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Padding(
+              padding: EdgeInsets.only(left: 36),
+              child: Text('It then opens like an app. No store needed.'),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Wrap(
+                children: [
+                  TextButton(onPressed: _dismiss, child: const Text('Not now')),
+                  FilledButton(
+                    onPressed: () => showInstallSheet(context),
+                    child: const Text('Show me how'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
