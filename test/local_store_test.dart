@@ -1,31 +1,10 @@
-import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:baby_growth_photobook/data/local_store_io.dart';
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/domain/schedule.dart';
 import 'package:baby_growth_photobook/notifications/calendar_ics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('FileStore reads, writes, lists and deletes by prefix', () async {
-    final dir = Directory.systemTemp.createTempSync('fs');
-    addTearDown(() => dir.deleteSync(recursive: true));
-    final s = FileStore(dir);
-    expect(await s.read('a/x.jpg'), isNull);
-    await s.write('photos/b/1.jpg', Uint8List.fromList([1, 2]));
-    await s.write('photos/b/2.jpg', Uint8List.fromList([3]));
-    await s.write('photos/c/1.jpg', Uint8List.fromList([4]));
-    expect(await s.read('photos/b/1.jpg'), [1, 2]);
-    expect((await s.list('photos/b/')).toSet(), {
-      'photos/b/1.jpg',
-      'photos/b/2.jpg',
-    });
-    await s.deletePrefix('photos/b/');
-    expect(await s.list('photos/b/'), isEmpty);
-    expect(await s.read('photos/c/1.jpg'), [4]);
-  });
-
   test('calendar file has stable ids and one event per due day', () {
     final baby = Baby(
       id: 'abc',

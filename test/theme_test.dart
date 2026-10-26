@@ -1,3 +1,5 @@
+import 'package:baby_growth_photobook/data/local_store.dart';
+import 'package:baby_growth_photobook/data/providers.dart';
 import 'package:baby_growth_photobook/domain/baby.dart';
 import 'package:baby_growth_photobook/features/home/welcome_view.dart';
 import 'package:baby_growth_photobook/main.dart';
@@ -86,7 +88,12 @@ void main() {
   testWidgets('the whole app stays light in phone dark mode', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    await tester.pumpWidget(const ProviderScope(child: PhotobookApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [localStoreProvider.overrideWith((_) async => MemoryStore())],
+        child: const PhotobookApp(),
+      ),
+    );
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.light);
     expect(app.darkTheme, isNull);
