@@ -15,9 +15,10 @@ class InstallSteps extends StatelessWidget {
     title: 'iPhone',
     icon: Icons.phone_iphone,
     steps: [
-      'Open this page in Safari. Other browsers on iPhone cannot install it.',
-      'Tap the Share button (a square with an arrow pointing up) at the '
-          'bottom of the screen.',
+      'Open this page in Safari (best). Chrome on iPhone also works if your '
+          'iPhone has iOS 16.4 or newer.',
+      'Tap the Share button (a square with an arrow pointing up): at the '
+          'bottom of the screen in Safari, next to the address in Chrome.',
       'Scroll down and tap "Add to Home Screen".',
       'Tap "Add". The Baby Photobook icon is now on your home screen.',
     ],
