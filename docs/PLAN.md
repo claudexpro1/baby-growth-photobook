@@ -1,5 +1,7 @@
 # Baby Photobooth — Plan
 
+> **Superseded 2026-10-26:** the product is web-only with Google Drive as the only storage (no native apps, no stores, no iCloud). This document describes the earlier native-app plan and is kept for history only. See README.md.
+
 ## Context
 Phone galleries hold thousands of photos and the baby's growth gets lost. This app asks the parent for one photo on a schedule that thins out over time (daily, then weekly, then monthly). It files each photo by number and date into the parent's own cloud storage and turns the set into a timeline/story inside the app. Hard requirement: **privacy-first**. There is no backend and no server of ours. Everything runs on the phone, and cloud storage is the user's own Drive or iCloud.
 

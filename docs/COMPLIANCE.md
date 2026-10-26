@@ -1,5 +1,7 @@
 # Compliance Review (draft, not legal advice)
 
+> **Update 2026-10-26: Google Drive is the only storage; there is no iCloud, no device-only mode and no native app, ever.**
+>
 > **Update 2026-10-14: the app is now web-only (a PWA for every phone and laptop).** Sections below that talk about Android/iOS builds, Android permissions, alarms, TestFlight, an Apple Developer account or iCloud describe the earlier native plan and are kept for history only. What is current: the web app, Google Drive (`drive.file`), Google Calendar reminders (`calendar.app.created`), profile in `BabyPhotobook/_App data/`. See README.md and the changelog.
 
 

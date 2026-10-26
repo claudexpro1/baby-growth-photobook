@@ -20,7 +20,7 @@ Documents for review: [docs/SPEC.md](docs/SPEC.md) (product + UX), [docs/COMPLIA
 - Reminder status in each baby's settings (calendar added or not; on a phone app: notifications on or blocked, and a test reminder)
 - Slideshow of all photos; "Disconnect Google Drive" and "Delete all data on this device" in the start page menu
 - Birth date can be set up to ten months ahead (due date)
-- A Google account and a connected Google Drive are required: photos are saved in your own Drive (babies created before this change can still be device-only until Drive is connected)
+- A Google account and a connected Google Drive are required: photos are saved in your own Drive, and every baby lives there from the start
 
 ## Using it on a phone: the web app
 
@@ -34,7 +34,7 @@ flutter build web --release --base-href /<path>/ --dart-define=GOOGLE_WEB_CLIENT
 
 `.github/workflows/web.yml` builds and publishes it to GitHub Pages (needs a public repo or a paid plan, Pages source = GitHub Actions, repo variable `GOOGLE_WEB_CLIENT_ID`). Add the Pages address as an *Authorized JavaScript origin* on the Web OAuth client.
 
-Not yet: iCloud (iPhone), milestone/birth-story cards. See the spec.
+Product decisions: the app is web-only (no native phone app, no App Store or Play Store) and Google Drive is the only storage (no iCloud, no device-only mode). Not built: milestone cards. See the spec.
 
 ## Setup (developers)
 
@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-26: Simplified to web + Google Drive only: removed the leftover device-only/iCloud storage modes (every baby is stored in Drive), the unused native notification and file-storage code and their packages; docs updated
 - 2026-10-16: First-time flow: a gentle starting schedule (weekly, then monthly from 6 months) is pre-filled, each onboarding step says "Step n of 4", and after Finish you land on your baby's page where the next steps (Drive, Calendar reminders, first photo) are waiting
 - 2026-10-16: Baby page: new "Backup and reminders" card with one short line each for Google Drive and Reminders that open in place (replaces the big Drive box); a step that is not done yet (connect Drive, reconnect, add reminders to Google Calendar) shows open with its button and a "One step left" note; reminders on/off and time can be changed right there; a gear next to the three dots opens Settings
 - 2026-10-16: Fixed Google's sign-in window flashing open on its own after login: only a tap you make can open it now; background uploads that need a new sign-in show a "Reconnect" button instead

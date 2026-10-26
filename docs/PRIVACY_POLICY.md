@@ -34,10 +34,6 @@ You can tap "Disconnect Google Drive" on the start page menu at any time to sign
 
 If you choose "Add reminders to Google Calendar", the app asks for the narrow permission "calendar.app.created". It lets the app create its own calendar and the events in it only; it cannot read your other calendars or events. Browsers cannot send reminders without a server, so Google Calendar sends them. Removing a baby deletes that calendar.
 
-## iCloud
-
-iCloud Drive is not supported yet. The app shows it as "Coming soon". This section will be updated if it is added.
-
 ## Sharing
 
 Nothing is shared unless you do it. If you make a PDF photobook or share a photo with the share sheet, it goes to the app or person you choose. If you use the optional "Get a share link" feature, the app puts a PDF photobook in a `Shared` folder in your Drive and creates a link to that folder that **anyone who has the link can open**. This is your own choice and only happens when you tap "Create link". Only send the link to people you trust. You can tap "Stop sharing" in the app to remove public access; the PDF stays in your `Shared` folder until you delete it.

@@ -1,5 +1,7 @@
 # Store Listing Drafts
 
+> **Superseded 2026-10-26:** the product is web-only with Google Drive as the only storage (no native apps, no stores, no iCloud). This document describes the earlier native-app plan and is kept for history only. See README.md.
+
 Draft text for Apple App Store and Google Play, checked against the code on 2026-10-11. Features marked (planned) are not built yet: remove them or build them before submitting, and re-check that the text still matches the app. The first release works with Google Drive only; iCloud is "Coming soon" in the app and must not be advertised yet.
 
 ## Name and subtitle
