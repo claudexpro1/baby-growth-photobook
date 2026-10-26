@@ -97,7 +97,9 @@ class _Steps extends StatelessWidget {
           children: [
             Icon(platform.icon, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            Text(platform.title, style: theme.textTheme.titleMedium),
+            Expanded(
+              child: Text(platform.title, style: theme.textTheme.titleMedium),
+            ),
           ],
         ),
         const SizedBox(height: 8),
