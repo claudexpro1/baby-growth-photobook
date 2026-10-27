@@ -11,6 +11,7 @@ import 'welcome_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers.dart';
+import '../../data/session_keeper.dart';
 import '../../domain/baby.dart';
 import '../../notifications/calendar_status.dart';
 import '../../ui/adaptive_scaffold.dart';
@@ -426,9 +427,14 @@ class _BabyCard extends ConsumerWidget {
             margin: large ? EdgeInsets.zero : null,
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => BabyPage(babyId: baby.id)),
-              ),
+              onTap: () async {
+                // A lapsed Google sign-in is renewed inside this tap.
+                await renewDriveOnTap(ref, baby);
+                if (!context.mounted) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => BabyPage(babyId: baby.id)),
+                );
+              },
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Align(

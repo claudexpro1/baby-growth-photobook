@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../camera/camera_service.dart';
 import '../../camera/camera_service_factory.dart';
 import '../../data/providers.dart';
+import '../../data/session_keeper.dart';
 import '../../domain/baby.dart';
 import '../common/photo_day_picker.dart';
 import 'camera_screen.dart';
@@ -22,6 +23,9 @@ Future<void> capturePhoto(
   ImageSource source, {
   CameraService Function()? cameraFactory,
 }) async {
+  // Renew a lapsed Google sign-in now, inside this tap, so the photo uploads.
+  await renewDriveOnTap(ref, baby);
+  if (!context.mounted) return;
   // On the web the camera opens inside the app, with a guide of the last photo.
   Uint8List? shot;
   var pickFrom = source;
