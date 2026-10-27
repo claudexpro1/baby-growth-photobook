@@ -159,7 +159,7 @@ class _WelcomeViewState extends State<WelcomeView> {
             child: LayoutBuilder(
               builder: (context, view) {
                 _viewHeight = view.maxHeight;
-                _vPadding = (wide ? 72 : 48) + (wide ? 56 : 24);
+                _vPadding = (wide ? 72 : 48) + (wide ? 56 : 48);
                 WidgetsBinding.instance.addPostFrameCallback((_) => _fitGaps());
                 return SingleChildScrollView(
                   child: ConstrainedBox(
@@ -173,7 +173,7 @@ class _WelcomeViewState extends State<WelcomeView> {
                             24,
                             wide ? 72 : 48,
                             24,
-                            wide ? 56 : 24,
+                            wide ? 56 : 48,
                           ),
                           child: Column(
                             key: _columnKey,
