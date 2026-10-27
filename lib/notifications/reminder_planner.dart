@@ -28,7 +28,8 @@ List<PlannedReminder> planReminders(
   var from = today;
   final schedule = baby.schedule;
   final finish = schedule.endDate;
-  while (out.length < max) {
+  // A hard stop (about 66 years of 121-day steps) so no schedule can loop on.
+  for (var guard = 0; out.length < max && guard < 200; guard++) {
     if (finish != null && from.isAfter(finish)) break; // finish line passed
     final due = schedule.dueDates(from, from.add(const Duration(days: 120)));
     if (due.isEmpty) {

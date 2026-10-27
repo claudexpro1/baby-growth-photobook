@@ -29,6 +29,14 @@ class PhaseDraft {
 /// saved as months (2 years = 24 months), so the schedule engine is unchanged.
 enum FinishUnit { day, week, month, year }
 
+/// Highest finish-line value in [u]: 18 years.
+int maxFinishIn(FinishUnit u) => switch (u) {
+  FinishUnit.day => maxAgeIn(TimeUnit.day),
+  FinishUnit.week => maxAgeIn(TimeUnit.week),
+  FinishUnit.month => maxAgeIn(TimeUnit.month),
+  FinishUnit.year => maxAgeYears,
+};
+
 /// The editable finish line: the age at which the photo series stops.
 class FinishDraft {
   FinishDraft({
@@ -360,19 +368,23 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
         TextButton.icon(
           icon: const Icon(Icons.add),
           label: const Text('Add a step'),
-          onPressed: () => _change(() {
-            final last = _p.last;
-            _p.add(
-              PhaseDraft(
-                last.startValue + 1,
-                last.startUnit == TimeUnit.day
-                    ? TimeUnit.month
-                    : last.startUnit,
-                last.every,
-                last.unit,
-              ),
-            );
-          }),
+          onPressed:
+              _p.length >= maxSteps ||
+                  _p.last.startValue >= maxAgeIn(_p.last.startUnit)
+              ? null
+              : () => _change(() {
+                  final last = _p.last;
+                  _p.add(
+                    PhaseDraft(
+                      last.startValue + 1,
+                      last.startUnit == TimeUnit.day
+                          ? TimeUnit.month
+                          : last.startUnit,
+                      last.every,
+                      last.unit,
+                    ),
+                  );
+                }),
         ),
         if (widget.finish != null) _finishCard(widget.finish!),
         _photoDaysCard(context),
@@ -413,7 +425,9 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
                   IconButton(
                     tooltip: 'More',
                     icon: const Icon(Icons.add_circle_outline),
-                    onPressed: () => _change(() => f.value++),
+                    onPressed: f.value < maxFinishIn(f.unit)
+                        ? () => _change(() => f.value++)
+                        : null,
                   ),
                   DropdownButton<FinishUnit>(
                     value: f.unit,
@@ -422,9 +436,17 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
                       for (final u in FinishUnit.values)
                         DropdownMenuItem(value: u, child: Text(plural(u))),
                     ],
-                    onChanged: (u) => _change(() => f.unit = u!),
+                    onChanged: (u) => _change(() {
+                      f.unit = u!;
+                      f.value = f.value.clamp(1, maxFinishIn(u));
+                    }),
                   ),
                 ],
+              ),
+            if (f.enabled && f.value >= maxFinishIn(f.unit))
+              Text(
+                'The longest finish line is $maxAgeYears years.',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
           ],
         ),
@@ -465,6 +487,7 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
                 p.startValue,
                 p.startUnit,
                 0,
+                maxAgeIn,
                 (v, u) => _change(() {
                   p.startValue = v;
                   p.startUnit = u;
@@ -481,6 +504,7 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
               p.every,
               p.unit,
               1,
+              maxGapIn,
               (v, u) => _change(() {
                 p.every = v;
                 p.unit = u;
@@ -513,8 +537,10 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
     int value,
     TimeUnit unit,
     int min,
+    int Function(TimeUnit) maxIn,
     void Function(int, TimeUnit) onChanged,
   ) {
+    final max = maxIn(unit);
     return Row(
       children: [
         Expanded(child: Text(label)),
@@ -527,7 +553,7 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
         IconButton(
           tooltip: 'More',
           icon: const Icon(Icons.add_circle_outline),
-          onPressed: () => onChanged(value + 1, unit),
+          onPressed: value < max ? () => onChanged(value + 1, unit) : null,
         ),
         DropdownButton<TimeUnit>(
           value: unit,
@@ -536,7 +562,7 @@ class _ScheduleEditorState extends State<ScheduleEditor> {
             for (final u in TimeUnit.values)
               DropdownMenuItem(value: u, child: Text(_plural(value, u))),
           ],
-          onChanged: (u) => onChanged(value, u!),
+          onChanged: (u) => onChanged(value.clamp(min, maxIn(u!)), u),
         ),
       ],
     );

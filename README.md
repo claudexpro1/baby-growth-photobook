@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-28: Safety limits in the schedule: ages (a step start, the finish line) up to 18 years, a photo every N up to one year, at most 8 steps; the + buttons stop at the limit, a unit change keeps the value inside the new limit, and the reminder planner has a hard loop stop
 - 2026-10-27: Fewer "Reconnect to Google Drive" banners: when Google's one-hour sign-in has lapsed, it is renewed inside the tap that opens a baby or starts a photo (Google only allows renewing from a tap)
 - 2026-10-27: One photo per day is now kept everywhere: restoring from Drive loads only one photo per day, and a new photo replaces the Drive file of the same day (before, a phone that did not know the Drive photos could create a second file for one day)
 - 2026-10-27: Sync result stays on the Drive card ("Last sync: ...") and a failed download now says why, instead of "waiting to upload"

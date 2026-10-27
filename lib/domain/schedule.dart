@@ -12,6 +12,26 @@ library;
 
 enum TimeUnit { day, week, month }
 
+/// Safety limits, so a typo or a runaway tap can never make the schedule (and
+/// the reminders built from it) huge. A baby photobook covers childhood: ages
+/// go up to 18 years, and the gap between two photos up to a year.
+const maxAgeYears = 18;
+const maxSteps = 8;
+
+/// Highest age (starts-at age, finish line) in each unit: 18 years.
+int maxAgeIn(TimeUnit u) => switch (u) {
+  TimeUnit.day => 6574,
+  TimeUnit.week => 939,
+  TimeUnit.month => maxAgeYears * 12,
+};
+
+/// Longest "a photo every N ..." in each unit: one year.
+int maxGapIn(TimeUnit u) => switch (u) {
+  TimeUnit.day => 365,
+  TimeUnit.week => 52,
+  TimeUnit.month => 12,
+};
+
 /// A span measured from birth, e.g. "2 months".
 class Age {
   const Age(this.value, this.unit) : assert(value >= 0);
