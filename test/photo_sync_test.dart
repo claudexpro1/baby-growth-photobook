@@ -98,6 +98,12 @@ class FakeCloud implements CloudStorage {
   Uri folderUrl(String folderId) => Uri.parse('https://example/$folderId');
 }
 
+class _BrokenDownloads extends FakeCloud {
+  @override
+  Future<Uint8List> download(String fileId) async =>
+      throw Exception('403 forbidden');
+}
+
 void main() {
   late MemoryStore store;
   late PhotoLibrary lib;
@@ -218,6 +224,17 @@ void main() {
     expect(r.downloaded, 3);
     expect(r.ignored, 1); // photo.png is not one of ours
     expect((await lib.list()).length, 3);
+  });
+
+  test('a failed download is reported with its reason', () async {
+    final cloud = _BrokenDownloads()
+      ..files['00001_2026-10-14.jpg'] = bytes(1)
+      ..files['00002_2026-10-15.jpg'] = bytes(2);
+    final r = await PhotoSync(cloud).sync(baby, lib);
+    expect(r.downloaded, 0);
+    expect(r.downloadFailed, 2);
+    expect(r.error, contains('403'));
+    expect((await lib.list()), isEmpty);
   });
 
   test('a retake during upload is not marked as synced', () async {

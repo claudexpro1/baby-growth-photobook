@@ -15,6 +15,8 @@ class SyncResult {
     this.found = 0,
     this.ignored = 0,
     this.folderName,
+    this.downloadFailed = 0,
+    this.error,
   });
 
   /// The baby, with cloud folder ids filled in if they were just created.
@@ -28,6 +30,10 @@ class SyncResult {
   final int found;
   final int ignored;
   final String? folderName;
+
+  /// Photos Drive has but that could not be downloaded, and why (first one).
+  final int downloadFailed;
+  final String? error;
 }
 
 bool _same(Uint8List a, Uint8List b) {
@@ -153,6 +159,8 @@ class PhotoSync {
       found: down.found,
       ignored: down.ignored,
       folderName: down.folderName,
+      downloadFailed: down.downloadFailed,
+      error: down.error,
     );
   }
 
@@ -178,6 +186,7 @@ class PhotoSync {
       // Only the baby's own folder then.
     }
     var n = 0, failed = 0, found = 0, ignored = 0;
+    String? error;
     for (final id in folders) {
       for (final f in await cloud.list(id)) {
         final name = PhotoName.parse(f.name);
@@ -194,8 +203,9 @@ class PhotoSync {
           have.add(name.fileName);
           found++;
           n++;
-        } catch (_) {
+        } catch (e) {
           failed++;
+          error ??= '$e';
         }
       }
     }
@@ -203,6 +213,8 @@ class PhotoSync {
       updated,
       downloaded: n,
       failed: failed,
+      downloadFailed: failed,
+      error: error,
       found: found,
       ignored: ignored,
       folderName: updated.driveFolderName,

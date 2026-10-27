@@ -70,7 +70,7 @@ class BackupAndReminders extends ConsumerWidget {
           foreground: const Color(0xFF5C3F00),
         )
       else
-        _driveRow(context, waiting),
+        _driveRow(context, waiting, ref.watch(lastSyncProvider)[baby.id]),
       if (calendarTodo)
         _AttentionRow(
           icon: Icons.event_outlined,
@@ -112,7 +112,7 @@ class BackupAndReminders extends ConsumerWidget {
     );
   }
 
-  Widget _driveRow(BuildContext context, int waiting) {
+  Widget _driveRow(BuildContext context, int waiting, String? lastSync) {
     final folderId = baby.driveFolderId;
     final title = syncing
         ? 'Saving to Google Drive…'
@@ -162,6 +162,13 @@ class BackupAndReminders extends ConsumerWidget {
             ),
           ],
         ),
+        if (lastSync != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            'Last sync: $lastSync',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
         const SizedBox(height: 10),
         if (folderId == null)
           const Text('The folder is created with your first photo.'),

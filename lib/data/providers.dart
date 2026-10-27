@@ -242,6 +242,20 @@ class DriveReconnectNotifier extends Notifier<bool> {
   }
 }
 
+/// What the last sync of each baby said, kept on the card (a snack bar is
+/// gone in seconds).
+class LastSyncNotifier extends Notifier<Map<String, String>> {
+  @override
+  Map<String, String> build() => {};
+  void set(String babyId, String message) =>
+      state = {...state, babyId: message};
+}
+
+final lastSyncProvider =
+    NotifierProvider<LastSyncNotifier, Map<String, String>>(
+      LastSyncNotifier.new,
+    );
+
 final driveReconnectProvider = NotifierProvider<DriveReconnectNotifier, bool>(
   DriveReconnectNotifier.new,
 );
@@ -299,7 +313,12 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
     Future<SyncOutcome> go() => _lastSync.then((_) => _sync(restore: restore));
     final run = interactive ? GoogleAuth.userInitiated(go) : go();
     _lastSync = run.then((_) {}, onError: (_) {});
-    return run;
+    return run.then((o) {
+      if (ref.mounted) {
+        ref.read(lastSyncProvider.notifier).set(babyId, o.message);
+      }
+      return o;
+    });
   }
 
   Future<SyncOutcome> _sync({bool restore = false}) async {
@@ -340,6 +359,13 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
       }
       await _refresh();
       ref.read(driveReconnectProvider.notifier).set(false);
+      if (r.downloadFailed > 0) {
+        return SyncOutcome(
+          'Could not download ${r.downloadFailed} photo(s) from Google '
+          'Drive: ${r.error}',
+          ok: false,
+        );
+      }
       if (r.failed > 0) {
         return SyncOutcome(
           '${r.failed} photo(s) are waiting to upload. We will try again.',
@@ -372,8 +398,9 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
           needsReconnect: true,
         );
       }
-      return const SyncOutcome(
-        'Could not reach Google Drive. Your photos are saved on this phone and will upload later.',
+      return SyncOutcome(
+        'Could not reach Google Drive ($e). Your photos are saved on this '
+        'phone and will upload later.',
         ok: false,
       );
     }
