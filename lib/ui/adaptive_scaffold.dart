@@ -154,9 +154,11 @@ class AdaptiveScaffold extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: bodyPadded
-                ? ContentFrame(maxWidth: maxWidth, child: body)
-                : body,
+            child: WheelScrollArea(
+              child: bodyPadded
+                  ? ContentFrame(maxWidth: maxWidth, child: body)
+                  : body,
+            ),
           ),
         ],
       ),

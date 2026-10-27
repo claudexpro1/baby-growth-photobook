@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-27: Fixed desktop scrolling: the mouse wheel now scrolls the page from anywhere in the window, not only over the centred white column
 - 2026-10-26: Install instructions for iPhone (Safari: Share > Add to Home Screen) and Android (Chrome: menu > Install app): an "Install on your phone" link on the welcome screen, a one-time dismissible banner on the home screen, and a menu entry; hidden once the app runs from the home-screen icon
 - 2026-10-26: Simplified to web + Google Drive only: removed the leftover device-only/iCloud storage modes (every baby is stored in Drive), the unused native notification and file-storage code and their packages; docs updated
 - 2026-10-16: First-time flow: a gentle starting schedule (weekly, then monthly from 6 months) is pre-filled, each onboarding step says "Step n of 4", and after Finish you land on your baby's page where the next steps (Drive, Calendar reminders, first photo) are waiting

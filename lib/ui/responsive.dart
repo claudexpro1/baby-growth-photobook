@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 /// Width classes. The phone layout is the one the app was designed for; wider
@@ -50,6 +51,37 @@ class ContentFrame extends StatelessWidget {
           child: child,
         ),
       ),
+    );
+  }
+}
+
+/// Lets the mouse wheel scroll the page from anywhere in [child]'s area, also
+/// over the empty margins beside a centred [ContentFrame]. The scrollable
+/// itself only covers the frame, so a wheel event outside it would be lost.
+/// Events over the scrollable are still handled by it: the pointer-signal
+/// resolver gives them to the deepest handler, so nothing scrolls twice.
+class WheelScrollArea extends StatelessWidget {
+  const WheelScrollArea({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = PrimaryScrollController.maybeOf(context);
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerSignal: (event) {
+        if (event is! PointerScrollEvent || controller == null) return;
+        GestureBinding.instance.pointerSignalResolver.register(event, (e) {
+          if (!controller.hasClients) return;
+          final dy = (e as PointerScrollEvent).scrollDelta.dy;
+          // With several panes the last one attached is the main content.
+          final pos = controller.positions.last;
+          pos.jumpTo(
+            (pos.pixels + dy).clamp(pos.minScrollExtent, pos.maxScrollExtent),
+          );
+        });
+      },
+      child: child,
     );
   }
 }
