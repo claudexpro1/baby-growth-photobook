@@ -233,7 +233,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           tooltip: 'Menu',
           onSelected: (v) => switch (v) {
             'restore' => _restore(),
-            'install' => showInstallSheet(context),
+            'install' => startInstall(context),
             'logout' => _logOut(),
             _ => _deleteAll(),
           },
@@ -581,7 +581,7 @@ class _InstallBannerState extends ConsumerState<_InstallBanner> {
                 children: [
                   TextButton(onPressed: _dismiss, child: const Text('Not now')),
                   FilledButton(
-                    onPressed: () => showInstallSheet(context),
+                    onPressed: () => startInstall(context),
                     child: const Text('Show me how'),
                   ),
                 ],

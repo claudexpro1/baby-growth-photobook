@@ -268,15 +268,30 @@ class _WelcomeViewState extends State<WelcomeView> {
                                   color: c.text,
                                 ),
                               ),
-                              if (!isInstalledApp())
-                                TextButton.icon(
-                                  onPressed: () => showInstallSheet(context),
+                              if (!isInstalledApp()) ...[
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  onPressed: () => startInstall(context),
                                   icon: const Icon(Icons.install_mobile),
-                                  label: const Text('Install on your phone'),
-                                  style: TextButton.styleFrom(
+                                  label: const Text(
+                                    'Add to your phone\'s home screen',
+                                  ),
+                                  style: OutlinedButton.styleFrom(
                                     foregroundColor: c.accent,
+                                    side: BorderSide(color: c.accent, width: 2),
+                                    minimumSize: const Size.fromHeight(52),
+                                    shape: const StadiumBorder(),
+                                    textStyle: const TextStyle(
+                                      fontFamily: 'DMSans',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      fontVariations: [
+                                        FontVariation('wght', 600),
+                                      ],
+                                    ),
                                   ),
                                 ),
+                              ],
                             ],
                           ),
                         ),
