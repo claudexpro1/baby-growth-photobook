@@ -80,6 +80,10 @@ class BabiesNotifier extends AsyncNotifier<List<Baby>> {
     final found = await PhotoSync(cloud).findProfiles();
     final have = {for (final b in state.value ?? <Baby>[]) b.id};
     final fresh = found.where((b) => !have.contains(b.id)).toList();
+    // Babies already here may still be missing photos that Drive has.
+    for (final b in found.where((b) => have.contains(b.id))) {
+      await ref.read(photosProvider(b.id).notifier).sync(restore: true);
+    }
     if (fresh.isEmpty) return 0;
     await _save([...?state.value, ...fresh]);
     unawaited(reschedule());
@@ -318,7 +322,7 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
       final all = ref.read(babiesProvider).value ?? <Baby>[];
       final r = restore
           ? await sync.restore(baby, lib, allBabies: all)
-          : await sync.upload(baby, lib, allBabies: all);
+          : await sync.sync(baby, lib, allBabies: all);
       if (r.baby.driveFolderId != baby.driveFolderId ||
           r.baby.driveFolderName != baby.driveFolderName) {
         // Re-read the current profile so edits made during the sync are kept.
@@ -342,10 +346,21 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
           ok: false,
         );
       }
+      final ignored = r.ignored > 0
+          ? ' ${r.ignored} other file(s) in the folder are not named like '
+                'the app\'s photos and are skipped.'
+          : '';
+      final where = r.folderName == null ? '' : ' in "${r.folderName}"';
+      if (r.downloaded > 0) {
+        return SyncOutcome(
+          'Added ${r.downloaded} photo(s) from Google Drive.$ignored',
+        );
+      }
       return SyncOutcome(
         restore
-            ? 'Restored ${r.downloaded} photo(s) from Google Drive.'
-            : 'All photos are safe in Google Drive.',
+            ? 'Google Drive has ${r.found} photo(s)$where; nothing new to '
+                  'restore.$ignored'
+            : 'All photos are safe in Google Drive (${r.found}$where).$ignored',
       );
     } catch (e) {
       if (e is DriveNeedsReconnect || e is GoogleReauthFailed) {

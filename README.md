@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-27: Fixed photos missing after reconnecting: "Sync now" now also downloads photos that are in Drive but not on the phone (it used to only upload); photos in a second Drive folder with the same name are found too; the sync message says how many photos Drive has and warns about files the app cannot read; "I already registered my baby" also fills in photos for babies already on the phone
 - 2026-10-27: Welcome screen on a phone: "Step 1: Add it to your phone" card above "Start with your baby" (skippable); the install sheet says which phone and browser it detected
 - 2026-10-27: Install on phone: the app now recognises the phone and browser (Safari or Chrome on iPhone, Chrome/Samsung/Firefox on Android, in-app browsers, computers) and shows only the matching steps with a short looping animation; one-tap "Install now" where the browser offers it; the welcome screen has a clear "Add to your phone's home screen" button
 - 2026-10-27: Fixed desktop scrolling: the mouse wheel now scrolls the page from anywhere in the window, not only over the centred white column

@@ -12,9 +12,10 @@ import 'package:flutter_test/flutter_test.dart';
 class FakeCloud implements CloudStorage {
   final files = <String, Uint8List>{}; // name -> bytes (the baby folder)
   final appData = <String, Uint8List>{}; // name -> bytes (_App data folder)
+  final twin = <String, Uint8List>{}; // a second folder with the same name
   final folderNames = <String>[]; // names passed to ensureBabyFolder
   Map<String, Uint8List> _in(String folderId) =>
-      folderId == 'appdata' ? appData : files;
+      folderId == 'appdata' ? appData : (folderId == 'folder-2' ? twin : files);
   bool offline = false;
   bool failUploads = false;
   void Function()? onUpload; // runs while an upload is in flight
@@ -61,7 +62,12 @@ class FakeCloud implements CloudStorage {
   }) async => 'shared-1';
   @override
   Future<List<RemoteFile>> listBabyFolders() async =>
-      files.isEmpty ? [] : [const RemoteFile('folder-1', 'Luna')];
+      files.isEmpty && twin.isEmpty
+      ? []
+      : [
+          const RemoteFile('folder-1', 'Luna'),
+          if (twin.isNotEmpty) const RemoteFile('folder-2', 'Luna'),
+        ];
   @override
   Future<void> upload(String folderId, String name, Uint8List bytes) async {
     _check();
@@ -79,7 +85,7 @@ class FakeCloud implements CloudStorage {
 
   @override
   Future<Uint8List> download(String fileId) async =>
-      files[fileId] ?? appData[fileId]!;
+      files[fileId] ?? twin[fileId] ?? appData[fileId]!;
   @override
   Future<void> deleteByName(String folderId, String name) async =>
       _in(folderId).remove(name);
@@ -183,6 +189,35 @@ void main() {
     // next new photo continues the numbering
     final next = await lib.add(bytes(3), DateTime(2026, 10, 24));
     expect(next.number, 3);
+  });
+
+  test('sync also downloads photos Drive has and the phone lacks', () async {
+    final cloud = FakeCloud()
+      ..files['00001_2026-10-14.jpg'] = bytes(1)
+      ..files['00003_2026-10-16.jpg'] = bytes(3);
+    await lib.add(bytes(9), DateTime(2026, 10, 20)); // only on the phone
+    final r = await PhotoSync(cloud).sync(baby, lib);
+    expect(r.uploaded, 1);
+    expect(r.downloaded, 2);
+    expect((await lib.list()).length, 3);
+    expect(cloud.files.length, 3); // the phone photo went up too
+    expect(r.found, 3);
+  });
+
+  test('restore also reads a second folder with the same name', () async {
+    final cloud = FakeCloud()
+      ..files['00001_2026-10-20.jpg'] = bytes(1)
+      ..twin['00001_2026-10-14.jpg'] = bytes(2)
+      ..twin['00002_2026-10-15.jpg'] = bytes(3)
+      ..twin['photo.png'] = bytes(4);
+    final withFolder = baby.copyWith(
+      driveFolderId: 'folder-1',
+      driveFolderName: 'Luna',
+    );
+    final r = await PhotoSync(cloud).restore(withFolder, lib);
+    expect(r.downloaded, 3);
+    expect(r.ignored, 1); // photo.png is not one of ours
+    expect((await lib.list()).length, 3);
   });
 
   test('a retake during upload is not marked as synced', () async {
