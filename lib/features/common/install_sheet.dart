@@ -223,6 +223,13 @@ class _InstallStepsState extends State<InstallSteps> {
               ),
               const SizedBox(height: 16),
             ],
+            if (_device.isPhone) ...[
+              Text(
+                'We think you use: ${guides[detected.id]!.label}',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+            ],
             if (warning != null) ...[
               _Warning(warning),
               const SizedBox(height: 16),

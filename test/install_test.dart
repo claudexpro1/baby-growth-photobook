@@ -5,6 +5,7 @@ import 'package:baby_growth_photobook/domain/schedule.dart';
 import 'package:baby_growth_photobook/features/common/device_info.dart';
 import 'package:baby_growth_photobook/features/common/install_sheet.dart';
 import 'package:baby_growth_photobook/features/home/home_page.dart';
+import 'package:baby_growth_photobook/features/home/welcome_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -71,6 +72,53 @@ void main() {
     await t.tap(find.text('iPhone · Safari'));
     await t.pump();
     expect(find.textContaining('Share button at the bottom'), findsOneWidget);
+  });
+
+  testWidgets('the sheet says what it detected', (t) async {
+    debugDevice = parseDevice(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 '
+      '(KHTML, like Gecko) CriOS/130.0 Mobile/15E148 Safari/604.1',
+    );
+    await openSteps(t);
+    expect(find.text('We think you use: iPhone · Chrome'), findsOneWidget);
+    final selected = t.widget<ChoiceChip>(
+      find.widgetWithText(ChoiceChip, 'iPhone · Chrome'),
+    );
+    expect(selected.selected, isTrue);
+  });
+
+  Future<void> openWelcome(WidgetTester t) async {
+    t.view.physicalSize = const Size(400, 1000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    await t.pumpWidget(
+      MaterialApp(
+        home: WelcomeView(onStart: () {}, onRestore: () {}, busy: false),
+      ),
+    );
+    await t.pump();
+  }
+
+  testWidgets('on a phone, step 1 is adding it to the phone', (t) async {
+    debugDevice = const DeviceInfo(Os.ios, Browser.safari);
+    await openWelcome(t);
+    expect(find.text('Add it to your phone'), findsOneWidget);
+    expect(find.text('STEP 2'), findsOneWidget);
+    expect(find.text('Start with your baby'), findsOneWidget);
+    await t.ensureVisible(find.text('Continue in the browser for now'));
+    await t.tap(find.text('Continue in the browser for now'));
+    await t.pump();
+    expect(find.text('Add it to your phone'), findsNothing);
+    expect(find.text('Start with your baby'), findsOneWidget);
+  });
+
+  testWidgets('on a computer there is no step 1, only the quiet button', (
+    t,
+  ) async {
+    debugDevice = const DeviceInfo(Os.other, Browser.other);
+    await openWelcome(t);
+    expect(find.text('Add it to your phone'), findsNothing);
+    expect(find.text("Add to your phone's home screen"), findsOneWidget);
   });
 
   test('parseDevice recognises the common browsers', () {

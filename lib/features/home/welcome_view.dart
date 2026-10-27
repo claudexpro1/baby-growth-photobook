@@ -96,6 +96,12 @@ class _WelcomeViewState extends State<WelcomeView> {
   /// small and is set after the first layout so both are equal and the buttons
   /// end at the bottom; when the content does not fit the page just scrolls.
   double _gap = _minGap;
+  bool _skipInstall = false;
+
+  /// Step 1 on a phone that is still in a browser tab: put the app on the
+  /// home screen before starting.
+  bool get _installFirst =>
+      !_skipInstall && !isInstalledApp() && currentDevice().isPhone;
   double _viewHeight = 0;
   double _vPadding = 0;
 
@@ -215,6 +221,25 @@ class _WelcomeViewState extends State<WelcomeView> {
                                 ),
                               ),
                               SizedBox(height: _gap),
+                              if (_installFirst) ...[
+                                _InstallStepCard(
+                                  palette: c,
+                                  onShow: () => startInstall(context),
+                                  onSkip: () =>
+                                      setState(() => _skipInstall = true),
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  'STEP 2',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    letterSpacing: 1.2,
+                                    fontWeight: FontWeight.w700,
+                                    color: c.accent,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                              ],
                               FilledButton(
                                 onPressed: widget.onStart,
                                 style: FilledButton.styleFrom(
@@ -268,7 +293,8 @@ class _WelcomeViewState extends State<WelcomeView> {
                                   color: c.text,
                                 ),
                               ),
-                              if (!isInstalledApp()) ...[
+                              if (!isInstalledApp() &&
+                                  !currentDevice().isPhone) ...[
                                 const SizedBox(height: 12),
                                 OutlinedButton.icon(
                                   onPressed: () => startInstall(context),
@@ -303,6 +329,81 @@ class _WelcomeViewState extends State<WelcomeView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Step 1: add it to your phone" above the start button.
+class _InstallStepCard extends StatelessWidget {
+  const _InstallStepCard({
+    required this.palette,
+    required this.onShow,
+    required this.onSkip,
+  });
+  final _Palette palette;
+  final VoidCallback onShow;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = palette;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: c.soft,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'STEP 1',
+              style: TextStyle(
+                fontSize: 12,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w700,
+                color: c.accent,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Add it to your phone',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: c.accent,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'It then opens full screen like an app, from its own icon. '
+              'It takes half a minute.',
+              style: TextStyle(fontSize: 15, height: 1.4, color: c.text),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onShow,
+              icon: const Icon(Icons.install_mobile),
+              label: const Text('Show me how'),
+              style: FilledButton.styleFrom(
+                backgroundColor: c.accent,
+                foregroundColor: c.onAccent,
+                minimumSize: const Size.fromHeight(52),
+                shape: const StadiumBorder(),
+              ),
+            ),
+            Align(
+              alignment: Alignment.center,
+              child: TextButton(
+                onPressed: onSkip,
+                style: TextButton.styleFrom(foregroundColor: c.text),
+                child: const Text('Continue in the browser for now'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

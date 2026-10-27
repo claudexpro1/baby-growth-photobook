@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-27: Welcome screen on a phone: "Step 1: Add it to your phone" card above "Start with your baby" (skippable); the install sheet says which phone and browser it detected
 - 2026-10-27: Install on phone: the app now recognises the phone and browser (Safari or Chrome on iPhone, Chrome/Samsung/Firefox on Android, in-app browsers, computers) and shows only the matching steps with a short looping animation; one-tap "Install now" where the browser offers it; the welcome screen has a clear "Add to your phone's home screen" button
 - 2026-10-27: Fixed desktop scrolling: the mouse wheel now scrolls the page from anywhere in the window, not only over the centred white column
 - 2026-10-26: Install instructions for iPhone (Safari: Share > Add to Home Screen) and Android (Chrome: menu > Install app): an "Install on your phone" link on the welcome screen, a one-time dismissible banner on the home screen, and a menu entry; hidden once the app runs from the home-screen icon
