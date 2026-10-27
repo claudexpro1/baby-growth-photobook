@@ -73,6 +73,7 @@ While the consent screen is in "Testing", add your testers' Google accounts as t
 
 ## Changelog
 
+- 2026-10-27: One photo per day is now kept everywhere: restoring from Drive loads only one photo per day, and a new photo replaces the Drive file of the same day (before, a phone that did not know the Drive photos could create a second file for one day)
 - 2026-10-27: Sync result stays on the Drive card ("Last sync: ...") and a failed download now says why, instead of "waiting to upload"
 - 2026-10-27: Fixed photos missing after reconnecting: "Sync now" now also downloads photos that are in Drive but not on the phone (it used to only upload); photos in a second Drive folder with the same name are found too; the sync message says how many photos Drive has and warns about files the app cannot read; "I already registered my baby" also fills in photos for babies already on the phone
 - 2026-10-27: Welcome screen on a phone: "Step 1: Add it to your phone" card above "Start with your baby" (skippable); the install sheet says which phone and browser it detected

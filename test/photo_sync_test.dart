@@ -226,6 +226,39 @@ void main() {
     expect((await lib.list()).length, 3);
   });
 
+  test('restore keeps one photo per day when Drive has two', () async {
+    final cloud = FakeCloud()
+      ..files['00001_2026-10-14.jpg'] = bytes(1)
+      ..files['00002_2026-10-14.jpg'] = bytes(2)
+      ..files['00003_2026-10-16.jpg'] = bytes(3);
+    final r = await PhotoSync(cloud).restore(baby, lib);
+    final all = await lib.list();
+    expect(all.map((p) => p.name.fileName), [
+      '00002_2026-10-14.jpg',
+      '00003_2026-10-16.jpg',
+    ]);
+    expect(r.downloaded, 2);
+    expect(r.ignored, 1);
+    // A second sync does not bring the skipped file back.
+    final again = await PhotoSync(cloud).restore(baby, lib);
+    expect(again.downloaded, 0);
+    expect((await lib.list()).length, 2);
+  });
+
+  test('a new photo replaces the Drive file of the same day', () async {
+    // The phone did not know Drive's photos: it numbers the photo 1, while
+    // Drive already holds this day as number 5.
+    final cloud = FakeCloud()
+      ..files['00005_2026-10-14.jpg'] = bytes(5)
+      ..files['00006_2026-10-16.jpg'] = bytes(6);
+    await lib.add(bytes(1), DateTime(2026, 10, 14));
+    await PhotoSync(cloud).upload(baby, lib);
+    expect(cloud.files.keys.where((k) => k.endsWith('.jpg')).toList()..sort(), [
+      '00001_2026-10-14.jpg',
+      '00006_2026-10-16.jpg',
+    ]);
+  });
+
   test('a failed download is reported with its reason', () async {
     final cloud = _BrokenDownloads()
       ..files['00001_2026-10-14.jpg'] = bytes(1)

@@ -121,8 +121,25 @@ class PhotoSync {
     } catch (_) {
       // Not fatal: the next sync saves it again.
     }
+    // One photo per day, also in Drive: a phone that did not know the Drive
+    // photos yet may number today's photo differently from the file Drive
+    // already has for that day; the new photo replaces the old file.
+    final remoteByDay = <DateTime, List<String>>{};
+    try {
+      for (final f in await cloud.list(folderId)) {
+        final n = PhotoName.parse(f.name);
+        if (n != null) (remoteByDay[n.date] ??= []).add(f.name);
+      }
+    } catch (_) {
+      // Not fatal: the upload below still works.
+    }
     for (final p in (await library.list()).where((p) => !p.synced)) {
       try {
+        for (final other in remoteByDay[p.date] ?? const <String>[]) {
+          if (other != p.name.fileName) {
+            await cloud.deleteByName(folderId, other);
+          }
+        }
         // A retake during the upload replaces the file; only mark it as synced
         // if it is exactly what we uploaded, otherwise it stays queued.
         final bytes = await p.bytes();
@@ -174,7 +191,6 @@ class PhotoSync {
   }) async {
     final updated = await _folder(baby, allBabies);
     final folderId = updated.driveFolderId!;
-    final have = (await library.list()).map((p) => p.name.fileName).toSet();
     final folders = [folderId];
     try {
       for (final f in await cloud.listBabyFolders()) {
@@ -187,6 +203,13 @@ class PhotoSync {
     }
     var n = 0, failed = 0, found = 0, ignored = 0;
     String? error;
+    // One photo per day, as when taking photos: when Drive holds several for
+    // one day (an old restart of the numbering), the newest number is used
+    // and a day that already has a photo here is left alone.
+    final daysHere = {
+      for (final p in await library.list()) p.date: p.name.fileName,
+    };
+    final byDay = <DateTime, (PhotoName, String)>{};
     for (final id in folders) {
       for (final f in await cloud.list(id)) {
         final name = PhotoName.parse(f.name);
@@ -194,19 +217,34 @@ class PhotoSync {
           ignored++;
           continue;
         }
-        if (have.contains(name.fileName)) {
-          found++;
-          continue;
+        final best = byDay[name.date];
+        if (best == null || name.number > best.$1.number) {
+          if (best != null) ignored++;
+          byDay[name.date] = (name, f.id);
+        } else {
+          ignored++;
         }
-        try {
-          await library.addFromCloud(name, await cloud.download(f.id));
-          have.add(name.fileName);
+      }
+    }
+    for (final entry in byDay.entries) {
+      final (name, fileId) = entry.value;
+      final here = daysHere[entry.key];
+      if (here != null) {
+        // Already on this phone (same file, or another file for that day).
+        if (here == name.fileName) {
           found++;
-          n++;
-        } catch (e) {
-          failed++;
-          error ??= '$e';
+        } else {
+          ignored++;
         }
+        continue;
+      }
+      try {
+        await library.addFromCloud(name, await cloud.download(fileId));
+        found++;
+        n++;
+      } catch (e) {
+        failed++;
+        error ??= '$e';
       }
     }
     return SyncResult(

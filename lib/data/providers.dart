@@ -373,8 +373,8 @@ class PhotosNotifier extends AsyncNotifier<List<PhotoEntry>> {
         );
       }
       final ignored = r.ignored > 0
-          ? ' ${r.ignored} other file(s) in the folder are not named like '
-                'the app\'s photos and are skipped.'
+          ? ' ${r.ignored} other file(s) in the folder are skipped (not named '
+                'like the app\'s photos, or a second photo for the same day).'
           : '';
       final where = r.folderName == null ? '' : ' in "${r.folderName}"';
       if (r.downloaded > 0) {
